@@ -131,7 +131,7 @@ library SafeMath {
      * - Subtraction cannot underflow.
      */
     function sub(uint a, uint b) internal pure returns (uint) {
-        return sub(a, b, "FlashLoanUniswap::SafeMath: subtraction underflow");
+        return sub(a, b, "TimeLoans::SafeMath: subtraction underflow");
     }
 
     /**
@@ -502,26 +502,39 @@ contract TimeLoanPair {
     /// @notice The standard EIP-20 approval event
     event Approval(address indexed owner, address indexed spender, uint amount);
 
+    /// @notice Uniswap V2 Router used for all swaps and liquidity management
     IUniswapV2Router02 public constant UNI = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+
+    /// @notice Uniswap Oracle Router used for all 24 hour TWAP price metrics
     IUniswapOracleRouter public constant ORACLE = IUniswapOracleRouter(0x0b5A6b318c39b60e7D8462F888e7fbA89f75D02F);
 
+    /// @notice The underlying Uniswap Pair used for loan liquidity
     address public pair;
 
+    /// @notice The token0 of the Uniswap Pair
     address public token0;
-    address public token1;
 
-    uint public reserve0;
-    uint public reserve1;
+    /// @notice The token1 of the Uniswap Pair
+    address public token1;
 
     event Borrow(address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut);
     event Repay(address indexed borrower, address indexed repaid, uint creditOut, uint amountIn);
     event Deposit(address indexed creditor, address indexed collateral, uint creditOut, uint amountIn, uint creditMinted);
     event Withdraw(address indexed creditor, address indexed collateral, uint creditIn, uint creditOut, uint amountOut);
 
-    uint public constant FEE = 300; // 0.6% loan initiation fee
+    /// @notice 0.6% initiation fee for all loans
+    uint public constant FEE = 600; // 0.6% loan initiation fee
+
+    /// @notice 105% liquidity buffer on withdrawing liquidity
     uint public constant BUFFER = 105000; // 105% liquidity buffer
+
+    /// @notice 80% loan to value ratio
     uint public constant LTV = 80000; // 80% loan to value ratio
+
+    /// @notice base for all % based calculations
     uint public constant BASE = 100000;
+
+    /// @notice the delay for a position to be closed
     uint public constant DELAY = 6600; // ~24 hours till position is closed
 
     struct position {
@@ -578,44 +591,15 @@ contract TimeLoanPair {
         if (_pos.expire < block.number) {
             return false;
         }
-        _deposit(_pos.collateral, _pos.creditIn);
         _pos.open = false;
         return true;
     }
 
-    function _deposit(address asset, uint amount) internal {
-        if (asset == token0) {
-            _deposit0(amount);
-        } else if (asset == token1) {
-            _deposit1(amount);
-        }
-    }
-    function _deposit0(uint amount) internal {
-        reserve0 = reserve0.add(amount);
-    }
-    function _deposit1(uint amount) internal {
-        reserve1 = reserve1.add(amount);
-    }
-
-    function balanceOf0() public view returns (uint) {
-        return IERC20(token0).balanceOf(address(this)).
-                add(IERC20(token0).balanceOf(pair)
+    function liquidityOf(address asset) public view returns (uint) {
+        return IERC20(asset).balanceOf(address(this)).
+                add(IERC20(asset).balanceOf(pair)
                     .mul(IERC20(pair).balanceOf(address(this)))
                     .div(IERC20(pair).totalSupply()));
-    }
-    function balanceOf1() public view returns (uint) {
-        return IERC20(token1).balanceOf(address(this)).
-                add(IERC20(token1).balanceOf(pair)
-                    .mul(IERC20(pair).balanceOf(address(this)))
-                    .div(IERC20(pair).totalSupply()));
-    }
-
-    function availableReserves(address asset) public view returns (uint) {
-        if (asset == token0) {
-            return balanceOf0();
-        } else if (asset == token1) {
-            return balanceOf1();
-        }
     }
 
     /**
@@ -681,9 +665,8 @@ contract TimeLoanPair {
 
         uint _amountOut = ORACLE.quote(collateral, borrow, _ltv);
         require(_amountOut >= outMin, "TimeLoans::loan: slippage");
-        require(availableReserves(borrow) > _amountOut, "TimeLoans::loan: insufficient liquidity");
+        require(liquidityOf(borrow) > _amountOut, "TimeLoans::loan: insufficient liquidity");
 
-        _deposit(collateral, _fee);
         positions.push(position(msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY), true));
         nextIndex = nextIndex+1;
 
@@ -735,9 +718,9 @@ contract TimeLoanPair {
         bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, amount, nonces[owner]++, deadline));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "FlashLoanUniswap::permit: invalid signature");
-        require(signatory == owner, "FlashLoanUniswap::permit: unauthorized");
-        require(now <= deadline, "FlashLoanUniswap::permit: signature expired");
+        require(signatory != address(0), "TimeLoans::permit: invalid signature");
+        require(signatory == owner, "TimeLoans::permit: unauthorized");
+        require(now <= deadline, "TimeLoans::permit: signature expired");
 
         allowances[owner][spender] = amount;
 
@@ -776,7 +759,7 @@ contract TimeLoanPair {
         uint spenderAllowance = allowances[src][spender];
 
         if (spender != src && spenderAllowance != uint(-1)) {
-            uint newAllowance = spenderAllowance.sub(amount, "FlashLoanUniswap::transferFrom: transfer amount exceeds spender allowance");
+            uint newAllowance = spenderAllowance.sub(amount, "TimeLoans::transferFrom: transfer amount exceeds spender allowance");
             allowances[src][spender] = newAllowance;
 
             emit Approval(src, spender, newAllowance);
@@ -787,11 +770,11 @@ contract TimeLoanPair {
     }
 
     function _transferTokens(address src, address dst, uint amount) internal {
-        require(src != address(0), "FlashLoanUniswap::_transferTokens: cannot transfer from the zero address");
-        require(dst != address(0), "FlashLoanUniswap::_transferTokens: cannot transfer to the zero address");
+        require(src != address(0), "TimeLoans::_transferTokens: cannot transfer from the zero address");
+        require(dst != address(0), "TimeLoans::_transferTokens: cannot transfer to the zero address");
 
-        balances[src] = balances[src].sub(amount, "FlashLoanUniswap::_transferTokens: transfer amount exceeds balance");
-        balances[dst] = balances[dst].add(amount, "FlashLoanUniswap::_transferTokens: transfer amount overflows");
+        balances[src] = balances[src].sub(amount, "TimeLoans::_transferTokens: transfer amount exceeds balance");
+        balances[dst] = balances[dst].add(amount, "TimeLoans::_transferTokens: transfer amount overflows");
         emit Transfer(src, dst, amount);
     }
 
