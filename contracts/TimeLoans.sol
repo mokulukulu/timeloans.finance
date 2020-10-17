@@ -551,6 +551,7 @@ contract TimeLoanPair {
     position[] public positions;
     uint public nextIndex;
     uint public processedIndex;
+    mapping(address => uint[]) public loans;
 
     constructor(IUniswapV2Pair _pair) public {
         symbol = string(abi.encodePacked(IUniswapV2Pair(_pair.token0()).symbol(), "-", IUniswapV2Pair(_pair.token1()).symbol()));
@@ -652,7 +653,7 @@ contract TimeLoanPair {
      * @param amount the amount of collateral being provided
      * @param outMin the minimum amount of liquidity to borrow
      */
-    function loan(address collateral, address borrow, uint amount, uint outMin) external {
+    function loan(address collateral, address borrow, uint amount, uint outMin) external returns (uint) {
         uint _before = IERC20(collateral).balanceOf(address(this));
         IERC20(collateral).transferFrom(msg.sender, address(this), amount);
         uint _after = IERC20(collateral).balanceOf(address(this));
@@ -668,7 +669,7 @@ contract TimeLoanPair {
         require(liquidityOf(borrow) > _amountOut, "TimeLoans::loan: insufficient liquidity");
 
         positions.push(position(msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY), true));
-        nextIndex = nextIndex+1;
+        loans[msg.sender].push(nextIndex);
 
         uint _available = IERC20(borrow).balanceOf(address(this));
         if (_available < _amountOut) {
@@ -676,6 +677,7 @@ contract TimeLoanPair {
         }
         IERC20(borrow).transfer(msg.sender, _amountOut);
         emit Borrow(msg.sender, collateral, borrow, _received, _amountOut);
+        return nextIndex++;
     }
 
     /**
