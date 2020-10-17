@@ -1,0 +1,753 @@
+pragma solidity ^0.6.6;
+
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP. Does not include
+ * the optional functions; to access them see {ERC20Detailed}.
+ */
+interface IERC20 {
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply() external view returns (uint);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint);
+
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `recipient`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(address recipient, uint amount) external returns (bool);
+
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * This value changes when {approve} or {transferFrom} are called.
+     */
+    function allowance(address owner, address spender) external view returns (uint);
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint amount) external returns (bool);
+
+    /**
+     * @dev Moves `amount` tokens from `sender` to `recipient` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(address sender, address recipient, uint amount) external returns (bool);
+
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint value);
+}
+
+// From https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/Math.sol
+// Subject to the MIT license.
+
+/**
+ * @dev Wrappers over Solidity's arithmetic operations with added overflow
+ * checks.
+ *
+ * Arithmetic operations in Solidity wrap on overflow. This can easily result
+ * in bugs, because programmers usually assume that an overflow raises an
+ * error, which is the standard behavior in high level programming languages.
+ * `SafeMath` restores this intuition by reverting the transaction when an
+ * operation overflows.
+ *
+ * Using this library instead of the unchecked operations eliminates an entire
+ * class of bugs, so it's recommended to use it always.
+ */
+library SafeMath {
+    /**
+     * @dev Returns the addition of two unsigned integers, reverting on overflow.
+     *
+     * Counterpart to Solidity's `+` operator.
+     *
+     * Requirements:
+     * - Addition cannot overflow.
+     */
+    function add(uint a, uint b) internal pure returns (uint) {
+        uint c = a + b;
+        require(c >= a, "SafeMath: addition overflow");
+
+        return c;
+    }
+
+    /**
+     * @dev Returns the addition of two unsigned integers, reverting with custom message on overflow.
+     *
+     * Counterpart to Solidity's `+` operator.
+     *
+     * Requirements:
+     * - Addition cannot overflow.
+     */
+    function add(uint a, uint b, string memory errorMessage) internal pure returns (uint) {
+        uint c = a + b;
+        require(c >= a, errorMessage);
+
+        return c;
+    }
+
+    /**
+     * @dev Returns the subtraction of two unsigned integers, reverting on underflow (when the result is negative).
+     *
+     * Counterpart to Solidity's `-` operator.
+     *
+     * Requirements:
+     * - Subtraction cannot underflow.
+     */
+    function sub(uint a, uint b) internal pure returns (uint) {
+        return sub(a, b, "FlashLoanUniswap::SafeMath: subtraction underflow");
+    }
+
+    /**
+     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on underflow (when the result is negative).
+     *
+     * Counterpart to Solidity's `-` operator.
+     *
+     * Requirements:
+     * - Subtraction cannot underflow.
+     */
+    function sub(uint a, uint b, string memory errorMessage) internal pure returns (uint) {
+        require(b <= a, errorMessage);
+        uint c = a - b;
+
+        return c;
+    }
+
+    /**
+     * @dev Returns the multiplication of two unsigned integers, reverting on overflow.
+     *
+     * Counterpart to Solidity's `*` operator.
+     *
+     * Requirements:
+     * - Multiplication cannot overflow.
+     */
+    function mul(uint a, uint b) internal pure returns (uint) {
+        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
+        // benefit is lost if 'b' is also tested.
+        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
+        if (a == 0) {
+            return 0;
+        }
+
+        uint c = a * b;
+        require(c / a == b, "SafeMath: multiplication overflow");
+
+        return c;
+    }
+
+    /**
+     * @dev Returns the multiplication of two unsigned integers, reverting on overflow.
+     *
+     * Counterpart to Solidity's `*` operator.
+     *
+     * Requirements:
+     * - Multiplication cannot overflow.
+     */
+    function mul(uint a, uint b, string memory errorMessage) internal pure returns (uint) {
+        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
+        // benefit is lost if 'b' is also tested.
+        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
+        if (a == 0) {
+            return 0;
+        }
+
+        uint c = a * b;
+        require(c / a == b, errorMessage);
+
+        return c;
+    }
+
+    /**
+     * @dev Returns the integer division of two unsigned integers.
+     * Reverts on division by zero. The result is rounded towards zero.
+     *
+     * Counterpart to Solidity's `/` operator. Note: this function uses a
+     * `revert` opcode (which leaves remaining gas untouched) while Solidity
+     * uses an invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     * - The divisor cannot be zero.
+     */
+    function div(uint a, uint b) internal pure returns (uint) {
+        return div(a, b, "SafeMath: division by zero");
+    }
+
+    /**
+     * @dev Returns the integer division of two unsigned integers.
+     * Reverts with custom message on division by zero. The result is rounded towards zero.
+     *
+     * Counterpart to Solidity's `/` operator. Note: this function uses a
+     * `revert` opcode (which leaves remaining gas untouched) while Solidity
+     * uses an invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     * - The divisor cannot be zero.
+     */
+    function div(uint a, uint b, string memory errorMessage) internal pure returns (uint) {
+        // Solidity only automatically asserts when dividing by 0
+        require(b > 0, errorMessage);
+        uint c = a / b;
+        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
+
+        return c;
+    }
+
+    /**
+     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
+     * Reverts when dividing by zero.
+     *
+     * Counterpart to Solidity's `%` operator. This function uses a `revert`
+     * opcode (which leaves remaining gas untouched) while Solidity uses an
+     * invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     * - The divisor cannot be zero.
+     */
+    function mod(uint a, uint b) internal pure returns (uint) {
+        return mod(a, b, "SafeMath: modulo by zero");
+    }
+
+    /**
+     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
+     * Reverts with custom message when dividing by zero.
+     *
+     * Counterpart to Solidity's `%` operator. This function uses a `revert`
+     * opcode (which leaves remaining gas untouched) while Solidity uses an
+     * invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     * - The divisor cannot be zero.
+     */
+    function mod(uint a, uint b, string memory errorMessage) internal pure returns (uint) {
+        require(b != 0, errorMessage);
+        return a % b;
+    }
+}
+
+interface IUniswapV2Factory {
+    event PairCreated(address indexed token0, address indexed token1, address pair, uint);
+
+    function feeTo() external view returns (address);
+    function feeToSetter() external view returns (address);
+
+    function getPair(address tokenA, address tokenB) external view returns (address pair);
+    function allPairs(uint) external view returns (address pair);
+    function allPairsLength() external view returns (uint);
+
+    function createPair(address tokenA, address tokenB) external returns (address pair);
+
+    function setFeeTo(address) external;
+    function setFeeToSetter(address) external;
+}
+
+interface IUniswapV2Pair {
+    event Approval(address indexed owner, address indexed spender, uint value);
+    event Transfer(address indexed from, address indexed to, uint value);
+
+    function name() external pure returns (string memory);
+    function symbol() external pure returns (string memory);
+    function decimals() external pure returns (uint8);
+    function totalSupply() external view returns (uint);
+    function balanceOf(address owner) external view returns (uint);
+    function allowance(address owner, address spender) external view returns (uint);
+
+    function approve(address spender, uint value) external returns (bool);
+    function transfer(address to, uint value) external returns (bool);
+    function transferFrom(address from, address to, uint value) external returns (bool);
+
+    function DOMAIN_SEPARATOR() external view returns (bytes32);
+    function PERMIT_TYPEHASH() external pure returns (bytes32);
+    function nonces(address owner) external view returns (uint);
+
+    function permit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s) external;
+
+    event Mint(address indexed sender, uint amount0, uint amount1);
+    event Burn(address indexed sender, uint amount0, uint amount1, address indexed to);
+    event Swap(
+        address indexed sender,
+        uint amount0In,
+        uint amount1In,
+        uint amount0Out,
+        uint amount1Out,
+        address indexed to
+    );
+    event Sync(uint112 reserve0, uint112 reserve1);
+
+    function MINIMUM_LIQUIDITY() external pure returns (uint);
+    function factory() external view returns (address);
+    function token0() external view returns (address);
+    function token1() external view returns (address);
+    function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
+    function price0CumulativeLast() external view returns (uint);
+    function price1CumulativeLast() external view returns (uint);
+    function kLast() external view returns (uint);
+
+    function mint(address to) external returns (uint liquidity);
+    function burn(address to) external returns (uint amount0, uint amount1);
+    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external;
+    function skim(address to) external;
+    function sync() external;
+
+    function initialize(address, address) external;
+}
+
+interface IUniswapV2Router01 {
+    function factory() external pure returns (address);
+    function WETH() external pure returns (address);
+
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint amountADesired,
+        uint amountBDesired,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountA, uint amountB, uint liquidity);
+    function addLiquidityETH(
+        address token,
+        uint amountTokenDesired,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external payable returns (uint amountToken, uint amountETH, uint liquidity);
+    function removeLiquidity(
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountA, uint amountB);
+    function removeLiquidityETH(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountToken, uint amountETH);
+    function removeLiquidityWithPermit(
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external returns (uint amountA, uint amountB);
+    function removeLiquidityETHWithPermit(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external returns (uint amountToken, uint amountETH);
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+    function swapTokensForExactTokens(
+        uint amountOut,
+        uint amountInMax,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
+        external
+        payable
+        returns (uint[] memory amounts);
+    function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
+        external
+        returns (uint[] memory amounts);
+    function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+        external
+        returns (uint[] memory amounts);
+    function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
+        external
+        payable
+        returns (uint[] memory amounts);
+
+    function quote(uint amountA, uint reserveA, uint reserveB) external pure returns (uint amountB);
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) external pure returns (uint amountOut);
+    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) external pure returns (uint amountIn);
+    function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts);
+    function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts);
+}
+
+interface IUniswapV2Router02 is IUniswapV2Router01 {
+    function removeLiquidityETHSupportingFeeOnTransferTokens(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountETH);
+    function removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external returns (uint amountETH);
+
+    function swapExactTokensForTokensSupportingFeeOnTransferTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external;
+    function swapExactETHForTokensSupportingFeeOnTransferTokens(
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external payable;
+    function swapExactTokensForETHSupportingFeeOnTransferTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external;
+}
+
+interface IUniswapOracleRouter {
+    function quote(address tokenIn, address tokenOut, uint amountIn) external view returns (uint amountOut);
+}
+
+contract TimeLoanPair {
+    using SafeMath for uint;
+
+    /// @notice EIP-20 token name for this token
+    string public constant name = "Time Loan Pair LP";
+
+    /// @notice EIP-20 token symbol for this token
+    string public symbol;
+
+    /// @notice EIP-20 token decimals for this token
+    uint8 public constant decimals = 18;
+
+    /// @notice Total number of tokens in circulation
+    uint public totalSupply = 0; // Initial 0
+
+    /// @notice Allowance amounts on behalf of others
+    mapping (address => mapping (address => uint)) internal allowances;
+
+    /// @notice Official record of token balances for each account
+    mapping (address => uint) internal balances;
+
+    /// @notice The EIP-712 typehash for the contract's domain
+    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint chainId,address verifyingContract)");
+
+    /// @notice The EIP-712 typehash for the permit struct used by the contract
+    bytes32 public constant PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint value,uint nonce,uint deadline)");
+
+    /// @notice A record of states for signing / validating signatures
+    mapping (address => uint) public nonces;
+
+    /// @notice The standard EIP-20 transfer event
+    event Transfer(address indexed from, address indexed to, uint amount);
+
+    /// @notice The standard EIP-20 approval event
+    event Approval(address indexed owner, address indexed spender, uint amount);
+
+    IUniswapV2Router02 public constant UNI = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+    IUniswapOracleRouter public constant ORACLE = IUniswapOracleRouter(0x0b5A6b318c39b60e7D8462F888e7fbA89f75D02F);
+
+    address public pair;
+
+    address public token0;
+    address public token1;
+
+    uint public reserve0;
+    uint public reserve1;
+
+    event Borrow(address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut);
+    event Repay(address indexed borrower, address indexed repaid, uint creditOut, uint amountIn);
+    event Deposit(address indexed creditor, address indexed collateral, uint creditOut, uint amountIn, uint creditMinted);
+    event Withdraw(address indexed creditor, address indexed collateral, uint creditIn, uint creditOut, uint amountOut);
+
+    uint public constant FEE = 300; // 0.3%
+    uint public constant LTV = 80000; // 80%
+    uint public constant BASE = 100000;
+    uint public constant DELAY = 6600; // ~24 hours
+
+    struct position {
+        address owner;
+        address collateral;
+        address borrowed;
+        uint creditIn;
+        uint amountOut;
+        uint created;
+        uint expire;
+        bool open;
+    }
+
+    position[] public positions;
+    uint public nextIndex;
+    uint public processedIndex;
+
+    constructor(IUniswapV2Pair _pair) public {
+        symbol = string(abi.encodePacked(IUniswapV2Pair(_pair.token0()).symbol(), "-", IUniswapV2Pair(_pair.token1()).symbol()));
+        pair = address(_pair);
+        token0 = _pair.token0();
+        token1 = _pair.token1();
+    }
+
+    function deposit(uint amount) public {
+        IERC20(pair).transferFrom(msg.sender, address(this), amount);
+        // mint logic
+    }
+
+    function closeInBatches(uint size) external {
+        uint i = processedIndex;
+        for (; i < size; i++) {
+            close(i);
+        }
+        processedIndex = i;
+    }
+
+    function closeAllOpen() external {
+        uint i = processedIndex;
+        for (; i < nextIndex; i++) {
+            close(i);
+        }
+        processedIndex = i;
+    }
+
+    function close(uint id) public returns (bool) {
+        position storage _pos = positions[id];
+        if (_pos.owner == address(0x0)) {
+            return false;
+        }
+        if (!_pos.open) {
+            return false;
+        }
+        if (_pos.expire < block.number) {
+            return false;
+        }
+        _deposit(_pos.collateral, _pos.creditIn);
+        _pos.open = false;
+        return true;
+    }
+
+    function _deposit(address asset, uint amount) internal {
+        if (asset == token0) {
+            _deposit0(amount);
+        } else if (asset == token1) {
+            _deposit1(amount);
+        }
+    }
+    function _deposit0(uint amount) internal {
+        reserve0 = reserve0.add(amount);
+    }
+    function _deposit1(uint amount) internal {
+        reserve1 = reserve1.add(amount);
+    }
+
+    function balanceOf0() public view returns (uint) {
+        return IERC20(token0).balanceOf(address(this)).
+                add(IERC20(token0).balanceOf(address(pair))
+                    .mul(IERC20(pair).balanceOf(address(this)))
+                    .div(IERC20(pair).totalSupply()));
+    }
+    function balanceOf1() public view returns (uint) {
+        return IERC20(token1).balanceOf(address(this)).
+                add(IERC20(token1).balanceOf(address(pair))
+                    .mul(IERC20(pair).balanceOf(address(this)))
+                    .div(IERC20(pair).totalSupply()));
+    }
+
+    function quote(address collateral, address borrow, uint amount) external view returns (uint minOut) {
+        return ORACLE.quote(collateral, borrow, amount);
+    }
+
+    function availableReserves(address asset) public view returns (uint) {
+        if (asset == token0) {
+            return balanceOf0();
+        } else if (asset == token1) {
+            return balanceOf1();
+        }
+    }
+
+    // Borrow exact amount of token output, can have variable input up to inMax
+    function loan(address collateral, address borrow, uint amount, uint outMin) external {
+        uint _before = IERC20(collateral).balanceOf(address(this));
+        IERC20(collateral).transferFrom(msg.sender, address(this), amount);
+        uint _after = IERC20(collateral).balanceOf(address(this));
+
+        uint _received = _after.sub(_before);
+        uint _fee = _received.mul(FEE).div(BASE);
+        _received = _received.sub(_fee);
+
+        uint _ltv = _received.mul(LTV).div(BASE);
+
+        uint _amountOut = ORACLE.quote(collateral, borrow, _ltv);
+        require(_amountOut >= outMin, "TimeLoans::loan: slippage");
+        require(availableReserves(borrow) > _amountOut, "TimeLoans::loan: insufficient liquidity");
+
+        _deposit(collateral, _fee);
+        positions.push(position(msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY), true));
+        nextIndex = nextIndex+1;
+
+        IERC20(borrow).transfer(msg.sender, _amountOut);
+        emit Borrow(msg.sender, collateral, borrow, _received, _amountOut);
+    }
+
+    /**
+     * @notice Get the number of tokens `spender` is approved to spend on behalf of `account`
+     * @param account The address of the account holding the funds
+     * @param spender The address of the account spending the funds
+     * @return The number of tokens approved
+     */
+    function allowance(address account, address spender) external view returns (uint) {
+        return allowances[account][spender];
+    }
+
+    /**
+     * @notice Approve `spender` to transfer up to `amount` from `src`
+     * @dev This will overwrite the approval amount for `spender`
+     *  and is subject to issues noted [here](https://eips.ethereum.org/EIPS/eip-20#approve)
+     * @param spender The address of the account which may transfer tokens
+     * @param amount The number of tokens that are approved (2^256-1 means infinite)
+     * @return Whether or not the approval succeeded
+     */
+    function approve(address spender, uint amount) public returns (bool) {
+        allowances[msg.sender][spender] = amount;
+
+        emit Approval(msg.sender, spender, amount);
+        return true;
+    }
+
+    /**
+     * @notice Triggers an approval from owner to spends
+     * @param owner The address to approve from
+     * @param spender The address to be approved
+     * @param amount The number of tokens that are approved (2^256-1 means infinite)
+     * @param deadline The time at which to expire the signature
+     * @param v The recovery byte of the signature
+     * @param r Half of the ECDSA signature pair
+     * @param s Half of the ECDSA signature pair
+     */
+    function permit(address owner, address spender, uint amount, uint deadline, uint8 v, bytes32 r, bytes32 s) external {
+        bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainId(), address(this)));
+        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, amount, nonces[owner]++, deadline));
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+        address signatory = ecrecover(digest, v, r, s);
+        require(signatory != address(0), "FlashLoanUniswap::permit: invalid signature");
+        require(signatory == owner, "FlashLoanUniswap::permit: unauthorized");
+        require(now <= deadline, "FlashLoanUniswap::permit: signature expired");
+
+        allowances[owner][spender] = amount;
+
+        emit Approval(owner, spender, amount);
+    }
+
+    /**
+     * @notice Get the number of tokens held by the `account`
+     * @param account The address of the account to get the balance of
+     * @return The number of tokens held
+     */
+    function balanceOf(address account) external view returns (uint) {
+        return balances[account];
+    }
+
+    /**
+     * @notice Transfer `amount` tokens from `msg.sender` to `dst`
+     * @param dst The address of the destination account
+     * @param amount The number of tokens to transfer
+     * @return Whether or not the transfer succeeded
+     */
+    function transfer(address dst, uint amount) public returns (bool) {
+        _transferTokens(msg.sender, dst, amount);
+        return true;
+    }
+
+    /**
+     * @notice Transfer `amount` tokens from `src` to `dst`
+     * @param src The address of the source account
+     * @param dst The address of the destination account
+     * @param amount The number of tokens to transfer
+     * @return Whether or not the transfer succeeded
+     */
+    function transferFrom(address src, address dst, uint amount) external returns (bool) {
+        address spender = msg.sender;
+        uint spenderAllowance = allowances[src][spender];
+
+        if (spender != src && spenderAllowance != uint(-1)) {
+            uint newAllowance = spenderAllowance.sub(amount, "FlashLoanUniswap::transferFrom: transfer amount exceeds spender allowance");
+            allowances[src][spender] = newAllowance;
+
+            emit Approval(src, spender, newAllowance);
+        }
+
+        _transferTokens(src, dst, amount);
+        return true;
+    }
+
+    function _transferTokens(address src, address dst, uint amount) internal {
+        require(src != address(0), "FlashLoanUniswap::_transferTokens: cannot transfer from the zero address");
+        require(dst != address(0), "FlashLoanUniswap::_transferTokens: cannot transfer to the zero address");
+
+        balances[src] = balances[src].sub(amount, "FlashLoanUniswap::_transferTokens: transfer amount exceeds balance");
+        balances[dst] = balances[dst].add(amount, "FlashLoanUniswap::_transferTokens: transfer amount overflows");
+        emit Transfer(src, dst, amount);
+    }
+
+    function getChainId() internal pure returns (uint) {
+        uint chainId;
+        assembly { chainId := chainid() }
+        return chainId;
+    }
+}
