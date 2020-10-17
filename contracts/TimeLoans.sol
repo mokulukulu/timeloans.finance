@@ -515,10 +515,17 @@ contract TimeLoanPair {
     /// @notice The token1 of the Uniswap Pair
     address public token1;
 
-    event Borrow(uint id, address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut, uint created, uint expire);
-    event Repay(address indexed borrower, address indexed repaid, uint creditOut, uint amountIn);
-    event Deposit(address indexed creditor, address indexed collateral, uint creditOut, uint amountIn, uint creditMinted);
-    event Withdraw(address indexed creditor, address indexed collateral, uint creditIn, uint creditOut, uint amountOut);
+
+    /// @notice Deposited event for creditor/LP
+    event Deposited(address indexed creditor, address indexed collateral, uint shares, uint credit);
+    /// @notice Withdawn event for creditor/LP
+    event Withdrew(address indexed creditor, address indexed collateral, uint shares, uint credit);
+
+    /// @notice The borrow event for any borrower
+    event Borrowed(uint id, address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut, uint created, uint expire);
+    /// @notice The close loan event when processing expired loans
+    event Repaid(uint id, address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut, uint created, uint expire);
+    /// @notice The close loan event when processing expired loans
     event Closed(uint id, address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut, uint created, uint expire);
 
     /// @notice 0.6% initiation fee for all loans
@@ -602,7 +609,11 @@ contract TimeLoanPair {
         emit Transfer(dst, address(0), amount);
     }
 
-    function withdraw(uint _shares) external {
+    function withdrawAll() external returns (bool) {
+        return withdraw(balances[msg.sender]);
+    }
+
+    function withdraw(uint _shares) public returns (bool) {
         uint r = liquidityBalance().mul(_shares).div(totalSupply);
         _burn(msg.sender, _shares);
 
@@ -610,18 +621,26 @@ contract TimeLoanPair {
 
         IERC20(pair).transfer(msg.sender, r);
         liquidityWithdrawals = liquidityWithdrawals.add(r);
+        emit Withdrew(msg.sender, pair, _shares, r);
+        return true;
+
+    }
+
+    function depositAll() external returns (bool) {
+        return deposit(IERC20(pair).balanceOf(msg.sender));
     }
 
     function deposit(uint amount) public returns (bool) {
         IERC20(pair).transferFrom(msg.sender, address(this), amount);
-        uint shares = 0;
+        uint _shares = 0;
         if (liquidityBalance() == 0) {
-            shares = amount;
+            _shares = amount;
         } else {
-            shares = amount.mul(totalSupply).div(liquidityBalance());
+            _shares = amount.mul(totalSupply).div(liquidityBalance());
         }
-        _mint(msg.sender, shares);
+        _mint(msg.sender, _shares);
         liquidityDeposits = liquidityDeposits.add(amount);
+        emit Deposited(msg.sender, pair, _shares, amount);
         return true;
     }
 
@@ -761,7 +780,7 @@ contract TimeLoanPair {
         loans[msg.sender].push(nextIndex);
 
         IERC20(borrow).transfer(msg.sender, _amountOut);
-        emit Borrow(nextIndex, msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY));
+        emit Borrowed(nextIndex, msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY));
         return nextIndex++;
     }
 
@@ -781,6 +800,7 @@ contract TimeLoanPair {
         }
         IERC20(_pos.collateral).transfer(msg.sender, _pos.creditIn);
         _pos.open = false;
+        emit Repaid(id, _pos.owner, _pos.collateral, _pos.borrowed, _pos.creditIn, _pos.amountOut, _pos.created, _pos.expire);
         return true;
     }
 
