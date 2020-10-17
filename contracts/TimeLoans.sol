@@ -517,10 +517,11 @@ contract TimeLoanPair {
     /// @notice The token1 of the Uniswap Pair
     address public token1;
 
-    event Borrow(address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut);
+    event Borrow(uint id, address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut, uint created, uint expire);
     event Repay(address indexed borrower, address indexed repaid, uint creditOut, uint amountIn);
     event Deposit(address indexed creditor, address indexed collateral, uint creditOut, uint amountIn, uint creditMinted);
     event Withdraw(address indexed creditor, address indexed collateral, uint creditIn, uint creditOut, uint amountOut);
+    event Closed(uint id, address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut, uint created, uint expire);
 
     /// @notice 0.6% initiation fee for all loans
     uint public constant FEE = 600; // 0.6% loan initiation fee
@@ -537,6 +538,7 @@ contract TimeLoanPair {
     /// @notice the delay for a position to be closed
     uint public constant DELAY = 6600; // ~24 hours till position is closed
 
+
     struct position {
         address owner;
         address collateral;
@@ -548,9 +550,16 @@ contract TimeLoanPair {
         bool open;
     }
 
+    // @notice array of all loan positions
     position[] public positions;
+
+    /// @notice the tip index of the positions array
     uint public nextIndex;
+
+    /// @notice the last index processed by the contract
     uint public processedIndex;
+
+    /// @notice mapping of loans assigned to users
     mapping(address => uint[]) public loans;
 
     constructor(IUniswapV2Pair _pair) public {
@@ -560,25 +569,28 @@ contract TimeLoanPair {
         token1 = _pair.token1();
     }
 
-    function deposit(uint amount) public {
+    function deposit(uint amount) public returns (bool) {
         IERC20(pair).transferFrom(msg.sender, address(this), amount);
         // mint logic
+        return true;
     }
 
-    function closeInBatches(uint size) external {
+    function closeInBatches(uint size) external returns (uint) {
         uint i = processedIndex;
         for (; i < size; i++) {
             close(i);
         }
         processedIndex = i;
+        return processedIndex;
     }
 
-    function closeAllOpen() external {
+    function closeAllOpen() external returns (uint) {
         uint i = processedIndex;
         for (; i < nextIndex; i++) {
             close(i);
         }
         processedIndex = i;
+        return processedIndex;
     }
 
     function close(uint id) public returns (bool) {
@@ -593,9 +605,16 @@ contract TimeLoanPair {
             return false;
         }
         _pos.open = false;
+
+        emit Closed(id, _pos.owner, _pos.collateral, _pos.borrowed, _pos.creditIn, _pos.amountOut, _pos.created, _pos.expire);
         return true;
     }
 
+    /**
+     * @notice returns the available liquidity (including LP tokens) for a given asset
+     * @param asset the asset to calculate liquidity for
+     * @return the amount of liquidity available
+     */
     function liquidityOf(address asset) public view returns (uint) {
         return IERC20(asset).balanceOf(address(this)).
                 add(IERC20(asset).balanceOf(pair)
@@ -676,8 +695,12 @@ contract TimeLoanPair {
             _withdrawLiquidity(borrow, _amountOut.sub(_available));
         }
         IERC20(borrow).transfer(msg.sender, _amountOut);
-        emit Borrow(msg.sender, collateral, borrow, _received, _amountOut);
+        emit Borrow(nextIndex, msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY));
         return nextIndex++;
+    }
+
+    function repay(uint id) external returns (bool) {
+
     }
 
     /**
