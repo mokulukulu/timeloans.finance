@@ -550,7 +550,7 @@ contract TimeLoanPair {
         bool open;
     }
 
-    // @notice array of all loan positions
+    /// @notice array of all loan positions
     position[] public positions;
 
     /// @notice the tip index of the positions array
