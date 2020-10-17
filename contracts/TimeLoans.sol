@@ -699,8 +699,23 @@ contract TimeLoanPair {
         return nextIndex++;
     }
 
+    /**
+     * @notice Repay a pending loan with `id` anyone can repay, no owner check
+     * @param id the id of the loan to close
+     * @return true/false if loan was successfully closed
+     */
     function repay(uint id) external returns (bool) {
-
+        position storage _pos = positions[id];
+        require(_pos.open, "TimeLoans::repay: position is already closed");
+        require(_pos.expire < block.number, "TimeLoans::repay: position already expired");
+        IERC20(_pos.borrowed).transferFrom(msg.sender, address(this), _pos.amountOut);
+        uint _available = IERC20(_pos.collateral).balanceOf(address(this));
+        if (_available < _pos.creditIn) {
+            _withdrawLiquidity(_pos.collateral, _pos.creditIn.sub(_available));
+        }
+        IERC20(_pos.collateral).transfer(msg.sender, _pos.creditIn);
+        _pos.open = false;
+        return true;
     }
 
     /**
