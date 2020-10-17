@@ -666,6 +666,14 @@ contract TimeLoanPair {
     }
 
     /**
+     * @notice deposit available liquidity in the system into the Uniswap Pair, manual for now, require keepers in later iterations
+     */
+    function depositLiquidity() external {
+        require(msg.sender == tx.origin, "TimeLoans::depositLiquidity: not an EOA keeper");
+        UNI.addLiquidity(token0, token1, IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), 0, 0, address(this), now.add(1800));
+    }
+
+    /**
      * @notice Returns greater than `outMin` amount of `borrow` based on `amount` of `collateral supplied
      * @param collateral the asset being used as collateral
      * @param borrow the asset being borrowed
