@@ -643,7 +643,6 @@ contract TimeLoanPair {
         liquidityWithdrawals = liquidityWithdrawals.add(r);
         emit Withdrew(msg.sender, pair, _shares, r);
         return true;
-
     }
 
     /**
@@ -751,9 +750,9 @@ contract TimeLoanPair {
      * @param asset the asset output required
      * @param amount the amount of asset required as output
      */
-    function _withdrawLiquidity(address asset, uint amount) internal returns (uint withdrawn) {
-        withdrawn = calculateLiquidityToBurn(asset, amount);
-        withdrawn = withdrawn.mul(BUFFER).div(BASE);
+    function _withdrawLiquidity(address asset, uint amount) internal returns (uint withdrew) {
+        withdrew = calculateLiquidityToBurn(asset, amount);
+        withdrew = withdrew.mul(BUFFER).div(BASE);
 
         uint _amountAMin = 0;
         uint _amountBMin = 0;
@@ -762,9 +761,9 @@ contract TimeLoanPair {
         } else if (asset == token1) {
             _amountBMin = amount;
         }
-        IERC20(pair).approve(address(UNI), withdrawn);
-        UNI.removeLiquidity(token0, token1, withdrawn, _amountAMin, _amountBMin, address(this), now.add(1800));
-        liquidityRemoved = liquidityRemoved.add(withdrawn);
+        IERC20(pair).approve(address(UNI), withdrew);
+        UNI.removeLiquidity(token0, token1, withdrew, _amountAMin, _amountBMin, address(this), now.add(1800));
+        liquidityRemoved = liquidityRemoved.add(withdrew);
     }
 
     /**
@@ -813,13 +812,13 @@ contract TimeLoanPair {
         require(liquidityOf(borrow) > _amountOut, "TimeLoans::loan: insufficient liquidity");
 
         uint _available = IERC20(borrow).balanceOf(address(this));
-        uint _withdrawn = 0;
+        uint _withdrew = 0;
         if (_available < _amountOut) {
-            _withdrawn = _withdrawLiquidity(borrow, _amountOut.sub(_available));
-            liquidityInUse = liquidityInUse.add(_withdrawn);
+            _withdrew = _withdrawLiquidity(borrow, _amountOut.sub(_available));
+            liquidityInUse = liquidityInUse.add(_withdrew);
         }
 
-        positions.push(position(msg.sender, collateral, borrow, _received, _amountOut, _withdrawn, block.number, block.number.add(DELAY), true));
+        positions.push(position(msg.sender, collateral, borrow, _received, _amountOut, _withdrew, block.number, block.number.add(DELAY), true));
         loans[msg.sender].push(nextIndex);
 
         IERC20(borrow).transfer(msg.sender, _amountOut);
@@ -843,6 +842,7 @@ contract TimeLoanPair {
         }
         IERC20(_pos.collateral).transfer(msg.sender, _pos.creditIn);
         _pos.open = false;
+        positions[id] = _pos;
         emit Repaid(id, _pos.owner, _pos.collateral, _pos.borrowed, _pos.creditIn, _pos.amountOut, _pos.created, _pos.expire);
         return true;
     }
@@ -951,5 +951,14 @@ contract TimeLoanPair {
         uint chainId;
         assembly { chainId := chainid() }
         return chainId;
+    }
+}
+
+contract TimeLoanPairFactory {
+    mapping(address => address) pairs;
+
+    function deploy(IUniswapV2Pair _pair) external {
+        require(pairs[address(_pair)] == address(0x0), "TimeLoanPairFactory::deploy: pair already created");
+        pairs[address(_pair)] = address(new TimeLoanPair(_pair));
     }
 }
