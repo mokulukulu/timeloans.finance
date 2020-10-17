@@ -568,14 +568,16 @@ contract TimeLoanPair {
         token1 = _pair.token1();
     }
 
-    uint public liquidityBalance;
+    uint public liquidityDeposits;
+    uint public liquidityWithdrawals;
     uint public liquidityAdded;
     uint public liquidityRemoved;
     uint public liquidityInUse;
     uint public liquidityFreed;
 
-    function liquidity() public view returns (uint) {
-        return liquidityBalance
+    function liquidityBalance() public view returns (uint) {
+        return liquidityDeposits
+                .sub(liquidityWithdrawals)
                 .add(liquidityAdded)
                 .sub(liquidityRemoved)
                 .add(liquidityInUse)
@@ -601,23 +603,25 @@ contract TimeLoanPair {
     }
 
     function withdraw(uint _shares) external {
-        uint r = liquidity().mul(_shares).div(totalSupply);
+        uint r = liquidityBalance().mul(_shares).div(totalSupply);
         _burn(msg.sender, _shares);
 
         require(IERC20(pair).balanceOf(address(this)) > r, "TimeLoans::withdraw: insufficient liquidity to withdraw, try depositLiquidity()");
 
         IERC20(pair).transfer(msg.sender, r);
+        liquidityWithdrawals = liquidityWithdrawals.add(r);
     }
 
     function deposit(uint amount) public returns (bool) {
         IERC20(pair).transferFrom(msg.sender, address(this), amount);
         uint shares = 0;
-        if (liquidity() == 0) {
+        if (liquidityBalance() == 0) {
             shares = amount;
         } else {
-            shares = amount.mul(totalSupply).div(liquidity());
+            shares = amount.mul(totalSupply).div(liquidityBalance());
         }
         _mint(msg.sender, shares);
+        liquidityDeposits = liquidityDeposits.add(amount);
         return true;
     }
 
