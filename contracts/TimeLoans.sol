@@ -518,10 +518,11 @@ contract TimeLoanPair {
     event Deposit(address indexed creditor, address indexed collateral, uint creditOut, uint amountIn, uint creditMinted);
     event Withdraw(address indexed creditor, address indexed collateral, uint creditIn, uint creditOut, uint amountOut);
 
-    uint public constant FEE = 300; // 0.3%
-    uint public constant LTV = 80000; // 80%
+    uint public constant FEE = 300; // 0.6% loan initiation fee
+    uint public constant BUFFER = 105000; // 105% liquidity buffer
+    uint public constant LTV = 80000; // 80% loan to value ratio
     uint public constant BASE = 100000;
-    uint public constant DELAY = 6600; // ~24 hours
+    uint public constant DELAY = 6600; // ~24 hours till position is closed
 
     struct position {
         address owner;
@@ -598,19 +599,15 @@ contract TimeLoanPair {
 
     function balanceOf0() public view returns (uint) {
         return IERC20(token0).balanceOf(address(this)).
-                add(IERC20(token0).balanceOf(address(pair))
+                add(IERC20(token0).balanceOf(pair)
                     .mul(IERC20(pair).balanceOf(address(this)))
                     .div(IERC20(pair).totalSupply()));
     }
     function balanceOf1() public view returns (uint) {
         return IERC20(token1).balanceOf(address(this)).
-                add(IERC20(token1).balanceOf(address(pair))
+                add(IERC20(token1).balanceOf(pair)
                     .mul(IERC20(pair).balanceOf(address(this)))
                     .div(IERC20(pair).totalSupply()));
-    }
-
-    function quote(address collateral, address borrow, uint amount) external view returns (uint minOut) {
-        return ORACLE.quote(collateral, borrow, amount);
     }
 
     function availableReserves(address asset) public view returns (uint) {
@@ -621,7 +618,56 @@ contract TimeLoanPair {
         }
     }
 
-    // Borrow exact amount of token output, can have variable input up to inMax
+    /**
+     * @notice calculates the amount of liquidity to burn to get the amount of asset
+     * @param amount the amount of asset required as output
+     * @return the amount of liquidity to burn
+     */
+    function calculateLiquidityToBurn(address asset, uint amount) public view returns (uint) {
+        return IERC20(pair).balanceOf(address(this))
+                .mul(amount)
+                .div(IERC20(asset).balanceOf(pair));
+    }
+
+    /**
+     * @notice withdraw liquidity to get the amount of tokens required to borrow
+     * @param asset the asset output required
+     * @param amount the amount of asset required as output
+     */
+    function _withdrawLiquidity(address asset, uint amount) internal {
+        uint _liquidity = calculateLiquidityToBurn(asset, amount);
+        _liquidity = _liquidity.mul(BUFFER).div(BASE);
+
+        uint _amountAMin = 0;
+        uint _amountBMin = 0;
+        if (asset == token0) {
+            _amountAMin = amount;
+        } else if (asset == token1) {
+            _amountBMin = amount;
+        }
+
+        UNI.removeLiquidity(token0, token1, _liquidity, _amountAMin, _amountBMin, address(this), now.add(1800));
+    }
+
+    /**
+     * @notice Provides a quote of how much output can be expected given the inputs
+     * @param collateral the asset being used as collateral
+     * @param borrow the asset being borrowed
+     * @param amount the amount of collateral being provided
+     * @return minOut the minimum amount of liquidity to borrow
+     */
+    function quote(address collateral, address borrow, uint amount) external view returns (uint minOut) {
+        uint _received = (amount.sub(amount.mul(FEE).div(BASE))).mul(LTV).div(BASE);
+        return ORACLE.quote(collateral, borrow, _received);
+    }
+
+    /**
+     * @notice Returns greater than `outMin` amount of `borrow` based on `amount` of `collateral supplied
+     * @param collateral the asset being used as collateral
+     * @param borrow the asset being borrowed
+     * @param amount the amount of collateral being provided
+     * @param outMin the minimum amount of liquidity to borrow
+     */
     function loan(address collateral, address borrow, uint amount, uint outMin) external {
         uint _before = IERC20(collateral).balanceOf(address(this));
         IERC20(collateral).transferFrom(msg.sender, address(this), amount);
@@ -641,6 +687,10 @@ contract TimeLoanPair {
         positions.push(position(msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY), true));
         nextIndex = nextIndex+1;
 
+        uint _available = IERC20(borrow).balanceOf(address(this));
+        if (_available < _amountOut) {
+            _withdrawLiquidity(borrow, _amountOut.sub(_available));
+        }
         IERC20(borrow).transfer(msg.sender, _amountOut);
         emit Borrow(msg.sender, collateral, borrow, _received, _amountOut);
     }
