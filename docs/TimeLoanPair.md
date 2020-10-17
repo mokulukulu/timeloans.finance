@@ -7,30 +7,74 @@
 
 ### `constructor(contract IUniswapV2Pair _pair)` (public)
 
+constructor takes a uniswap pair as an argument to set its 2 borrowable assets
+
+
+
+### `liquidityBalance() → uint256` (public)
+
+the current net liquidity positions
+
+
+
+
+### `_mint(address dst, uint256 amount)` (internal)
+
+
+
+
+
+### `_burn(address dst, uint256 amount)` (internal)
+
+
+
+
+
+### `withdrawAll() → bool` (external)
+
+withdraw all liquidity from msg.sender shares
+
+
+
+
+### `withdraw(uint256 _shares) → bool` (public)
+
+withdraw `_shares` amount of liquidity for user
+
+
+
+
+### `depositAll() → bool` (external)
+
+deposit all liquidity from msg.sender
 
 
 
 
 ### `deposit(uint256 amount) → bool` (public)
 
+deposit `amount` amount of liquidity for user
 
 
 
 
 ### `closeInBatches(uint256 size) → uint256` (external)
 
+batch close any pending open loans that have expired
 
 
 
 
 ### `closeAllOpen() → uint256` (external)
 
+iterate through all open loans and close
 
 
 
 
 ### `close(uint256 id) → bool` (public)
 
+close a specific loan based on id
 
 
 
@@ -49,7 +93,7 @@ calculates the amount of liquidity to burn to get the amount of asset
 
 
 
-### `_withdrawLiquidity(address asset, uint256 amount)` (internal)
+### `_withdrawLiquidity(address asset, uint256 amount) → uint256 withdrawn` (internal)
 
 withdraw liquidity to get the amount of tokens required to borrow
 
@@ -152,33 +196,33 @@ The standard EIP-20 approval event
 
 
 
-### `Borrow(uint256 id, address borrower, address collateral, address borrowed, uint256 creditIn, uint256 amountOut, uint256 created, uint256 expire)`
+### `Deposited(address creditor, address collateral, uint256 shares, uint256 credit)`
+
+Deposited event for creditor/LP
 
 
 
+### `Withdrew(address creditor, address collateral, uint256 shares, uint256 credit)`
 
-
-### `Repay(address borrower, address repaid, uint256 creditOut, uint256 amountIn)`
-
-
-
-
-
-### `Deposit(address creditor, address collateral, uint256 creditOut, uint256 amountIn, uint256 creditMinted)`
+Withdawn event for creditor/LP
 
 
 
+### `Borrowed(uint256 id, address borrower, address collateral, address borrowed, uint256 creditIn, uint256 amountOut, uint256 created, uint256 expire)`
+
+The borrow event for any borrower
 
 
-### `Withdraw(address creditor, address collateral, uint256 creditIn, uint256 creditOut, uint256 amountOut)`
 
+### `Repaid(uint256 id, address borrower, address collateral, address borrowed, uint256 creditIn, uint256 amountOut, uint256 created, uint256 expire)`
 
+The close loan event when processing expired loans
 
 
 
 ### `Closed(uint256 id, address borrower, address collateral, address borrowed, uint256 creditIn, uint256 amountOut, uint256 created, uint256 expire)`
 
-
+The close loan event when processing expired loans
 
 
 

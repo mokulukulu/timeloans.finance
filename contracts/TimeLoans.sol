@@ -568,6 +568,7 @@ contract TimeLoanPair {
     /// @notice mapping of loans assigned to users
     mapping(address => uint[]) public loans;
 
+    /// @notice constructor takes a uniswap pair as an argument to set its 2 borrowable assets
     constructor(IUniswapV2Pair _pair) public {
         symbol = string(abi.encodePacked(IUniswapV2Pair(_pair.token0()).symbol(), "-", IUniswapV2Pair(_pair.token1()).symbol()));
         pair = address(_pair);
@@ -575,13 +576,23 @@ contract TimeLoanPair {
         token1 = _pair.token1();
     }
 
+    /// @notice total liquidity deposited
     uint public liquidityDeposits;
+    /// @notice total liquidity withdrawn
     uint public liquidityWithdrawals;
+    /// @notice total liquidity added via addLiquidity
     uint public liquidityAdded;
+    /// @notice total liquidity removed via removeLiquidity
     uint public liquidityRemoved;
+    /// @notice total liquidity currently in use by pending loans
     uint public liquidityInUse;
+    /// @notice total liquidity freed up from closed loans
     uint public liquidityFreed;
 
+    /**
+     * @notice the current net liquidity positions
+     * @return the net liquidity sum
+     */
     function liquidityBalance() public view returns (uint) {
         return liquidityDeposits
                 .sub(liquidityWithdrawals)
@@ -609,10 +620,19 @@ contract TimeLoanPair {
         emit Transfer(dst, address(0), amount);
     }
 
+    /**
+     * @notice withdraw all liquidity from msg.sender shares
+     * @return success/failure
+     */
     function withdrawAll() external returns (bool) {
         return withdraw(balances[msg.sender]);
     }
 
+    /**
+     * @notice withdraw `_shares` amount of liquidity for user
+     * @param _shares the amount of shares to burn for liquidity
+     * @return success/failure
+     */
     function withdraw(uint _shares) public returns (bool) {
         uint r = liquidityBalance().mul(_shares).div(totalSupply);
         _burn(msg.sender, _shares);
@@ -626,10 +646,19 @@ contract TimeLoanPair {
 
     }
 
+    /**
+     * @notice deposit all liquidity from msg.sender
+     * @return success/failure
+     */
     function depositAll() external returns (bool) {
         return deposit(IERC20(pair).balanceOf(msg.sender));
     }
 
+    /**
+     * @notice deposit `amount` amount of liquidity for user
+     * @param amount the amount of liquidity to add for shares
+     * @return success/failure
+     */
     function deposit(uint amount) public returns (bool) {
         IERC20(pair).transferFrom(msg.sender, address(this), amount);
         uint _shares = 0;
@@ -644,6 +673,11 @@ contract TimeLoanPair {
         return true;
     }
 
+    /**
+     * @notice batch close any pending open loans that have expired
+     * @param size the maximum size of batch to execute
+     * @return the last index processed
+     */
     function closeInBatches(uint size) external returns (uint) {
         uint i = processedIndex;
         for (; i < size; i++) {
@@ -653,6 +687,10 @@ contract TimeLoanPair {
         return processedIndex;
     }
 
+    /**
+     * @notice iterate through all open loans and close
+     * @return the last index processed
+     */
     function closeAllOpen() external returns (uint) {
         uint i = processedIndex;
         for (; i < nextIndex; i++) {
@@ -662,6 +700,11 @@ contract TimeLoanPair {
         return processedIndex;
     }
 
+    /**
+     * @notice close a specific loan based on id
+     * @param id the `id` of the given loan to close
+     * @return success/failure
+     */
     function close(uint id) public returns (bool) {
         position storage _pos = positions[id];
         if (_pos.owner == address(0x0)) {
