@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.6.6;
 
 /**
@@ -481,10 +482,7 @@ contract TimeLoanPair {
     /// @notice Total number of tokens in circulation
     uint public totalSupply = 0; // Initial 0
 
-    /// @notice Allowance amounts on behalf of others
     mapping (address => mapping (address => uint)) internal allowances;
-
-    /// @notice Official record of token balances for each account
     mapping (address => uint) internal balances;
 
     /// @notice The EIP-712 typehash for the contract's domain
@@ -545,6 +543,7 @@ contract TimeLoanPair {
         address borrowed;
         uint creditIn;
         uint amountOut;
+        uint liquidityInUse;
         uint created;
         uint expire;
         bool open;
@@ -569,9 +568,19 @@ contract TimeLoanPair {
         token1 = _pair.token1();
     }
 
-    uint public virtualDeposits;
-    uint public virtualRemoveLiquidity;
-    uint public virtualAddLiquidity;
+    uint public liquidityBalance;
+    uint public liquidityAdded;
+    uint public liquidityRemoved;
+    uint public liquidityInUse;
+    uint public liquidityFreed;
+
+    function liquidity() public view returns (uint) {
+        return liquidityBalance
+                .add(liquidityAdded)
+                .sub(liquidityRemoved)
+                .add(liquidityInUse)
+                .sub(liquidityFreed);
+    }
 
     function _mint(address dst, uint amount) internal {
         // mint the amount
@@ -592,21 +601,21 @@ contract TimeLoanPair {
     }
 
     function withdraw(uint _shares) external {
-      uint r = virtualBalance.mul(_shares).div(totalSupply);
-      _burn(msg.sender, _shares);
+        uint r = liquidity().mul(_shares).div(totalSupply);
+        _burn(msg.sender, _shares);
 
-      require(IERC20(pair).balanceOf(address(this)) > r, "TimeLoans::withdraw: insufficient liquidity to withdraw, try depositLiquidity()");
+        require(IERC20(pair).balanceOf(address(this)) > r, "TimeLoans::withdraw: insufficient liquidity to withdraw, try depositLiquidity()");
 
-      IERC20(pair).transfer(msg.sender, r);
-  }
+        IERC20(pair).transfer(msg.sender, r);
+    }
 
     function deposit(uint amount) public returns (bool) {
         IERC20(pair).transferFrom(msg.sender, address(this), amount);
         uint shares = 0;
-        if (virtualBalance == 0) {
+        if (liquidity() == 0) {
             shares = amount;
         } else {
-            shares = amount.mul(totalSupply).div(virtualBalance);
+            shares = amount.mul(totalSupply).div(liquidity());
         }
         _mint(msg.sender, shares);
         return true;
@@ -642,7 +651,8 @@ contract TimeLoanPair {
             return false;
         }
         _pos.open = false;
-
+        liquidityInUse = liquidityInUse.sub(_pos.liquidityInUse, "TimeLoans::close: liquidityInUse overflow");
+        liquidityFreed = liquidityFreed.add(_pos.liquidityInUse);
         emit Closed(id, _pos.owner, _pos.collateral, _pos.borrowed, _pos.creditIn, _pos.amountOut, _pos.created, _pos.expire);
         return true;
     }
@@ -675,9 +685,9 @@ contract TimeLoanPair {
      * @param asset the asset output required
      * @param amount the amount of asset required as output
      */
-    function _withdrawLiquidity(address asset, uint amount) internal {
-        uint _liquidity = calculateLiquidityToBurn(asset, amount);
-        _liquidity = _liquidity.mul(BUFFER).div(BASE);
+    function _withdrawLiquidity(address asset, uint amount) internal returns (uint withdrawn) {
+        withdrawn = calculateLiquidityToBurn(asset, amount);
+        withdrawn = withdrawn.mul(BUFFER).div(BASE);
 
         uint _amountAMin = 0;
         uint _amountBMin = 0;
@@ -686,9 +696,9 @@ contract TimeLoanPair {
         } else if (asset == token1) {
             _amountBMin = amount;
         }
-        IERC20(pair).approve(address(UNI), _liquidity);
-        UNI.removeLiquidity(token0, token1, _liquidity, _amountAMin, _amountBMin, address(this), now.add(1800));
-        virtualRemoveLiquidity = virtualRemoveLiquidity.add(_liquidity);
+        IERC20(pair).approve(address(UNI), withdrawn);
+        UNI.removeLiquidity(token0, token1, withdrawn, _amountAMin, _amountBMin, address(this), now.add(1800));
+        liquidityRemoved = liquidityRemoved.add(withdrawn);
     }
 
     /**
@@ -703,14 +713,6 @@ contract TimeLoanPair {
         return ORACLE.quote(collateral, borrow, _received);
     }
 
-    function virtualBalance() public view returns (uint) {
-        if (virtualAddLiquidity > virtualRemoveLiquidity) {
-            return virtualDeposits.add(virtualAddLiquidity).sub(virtualRemoveLiquidity);
-        } else {
-            return virtualDeposits;
-        }
-    }
-
     /**
      * @notice deposit available liquidity in the system into the Uniswap Pair, manual for now, require keepers in later iterations
      */
@@ -718,8 +720,8 @@ contract TimeLoanPair {
         require(msg.sender == tx.origin, "TimeLoans::depositLiquidity: not an EOA keeper");
         IERC20(token0).approve(address(UNI), IERC20(token0).balanceOf(address(this)));
         IERC20(token1).approve(address(UNI), IERC20(token1).balanceOf(address(this)));
-        (,,uint liquidity) = UNI.addLiquidity(token0, token1, IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), 0, 0, address(this), now.add(1800));
-        virtualAddLiquidity = virtualAddLiquidity.add(liquidity);
+        (,,uint _added) = UNI.addLiquidity(token0, token1, IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), 0, 0, address(this), now.add(1800));
+        liquidityAdded = liquidityAdded.add(_added);
     }
 
     /**
@@ -744,13 +746,16 @@ contract TimeLoanPair {
         require(_amountOut >= outMin, "TimeLoans::loan: slippage");
         require(liquidityOf(borrow) > _amountOut, "TimeLoans::loan: insufficient liquidity");
 
-        positions.push(position(msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY), true));
+        uint _available = IERC20(borrow).balanceOf(address(this));
+        uint _withdrawn = 0;
+        if (_available < _amountOut) {
+            _withdrawn = _withdrawLiquidity(borrow, _amountOut.sub(_available));
+            liquidityInUse = liquidityInUse.add(_withdrawn);
+        }
+
+        positions.push(position(msg.sender, collateral, borrow, _received, _amountOut, _withdrawn, block.number, block.number.add(DELAY), true));
         loans[msg.sender].push(nextIndex);
 
-        uint _available = IERC20(borrow).balanceOf(address(this));
-        if (_available < _amountOut) {
-            _withdrawLiquidity(borrow, _amountOut.sub(_available));
-        }
         IERC20(borrow).transfer(msg.sender, _amountOut);
         emit Borrow(nextIndex, msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY));
         return nextIndex++;
