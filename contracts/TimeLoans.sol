@@ -569,9 +569,46 @@ contract TimeLoanPair {
         token1 = _pair.token1();
     }
 
+    uint public virtualDeposits;
+    uint public virtualRemoveLiquidity;
+    uint public virtualAddLiquidity;
+
+    function _mint(address dst, uint amount) internal {
+        // mint the amount
+        totalSupply = totalSupply.add(amount);
+
+        // transfer the amount to the recipient
+        balances[dst] = balances[dst].add(amount);
+        emit Transfer(address(0), dst, amount);
+    }
+
+    function _burn(address dst, uint amount) internal {
+        // burn the amount
+        totalSupply = totalSupply.sub(amount, "TimeLoans::_burn: underflow");
+
+        // transfer the amount to the recipient
+        balances[dst] = balances[dst].sub(amount, "TimeLoans::_burn: underflow");
+        emit Transfer(dst, address(0), amount);
+    }
+
+    function withdraw(uint _shares) external {
+      uint r = virtualBalance.mul(_shares).div(totalSupply);
+      _burn(msg.sender, _shares);
+
+      require(IERC20(pair).balanceOf(address(this)) > r, "TimeLoans::withdraw: insufficient liquidity to withdraw, try depositLiquidity()");
+
+      IERC20(pair).transfer(msg.sender, r);
+  }
+
     function deposit(uint amount) public returns (bool) {
         IERC20(pair).transferFrom(msg.sender, address(this), amount);
-        // mint logic
+        uint shares = 0;
+        if (virtualBalance == 0) {
+            shares = amount;
+        } else {
+            shares = amount.mul(totalSupply).div(virtualBalance);
+        }
+        _mint(msg.sender, shares);
         return true;
     }
 
@@ -649,8 +686,9 @@ contract TimeLoanPair {
         } else if (asset == token1) {
             _amountBMin = amount;
         }
-
+        IERC20(pair).approve(address(UNI), _liquidity);
         UNI.removeLiquidity(token0, token1, _liquidity, _amountAMin, _amountBMin, address(this), now.add(1800));
+        virtualRemoveLiquidity = virtualRemoveLiquidity.add(_liquidity);
     }
 
     /**
@@ -665,12 +703,23 @@ contract TimeLoanPair {
         return ORACLE.quote(collateral, borrow, _received);
     }
 
+    function virtualBalance() public view returns (uint) {
+        if (virtualAddLiquidity > virtualRemoveLiquidity) {
+            return virtualDeposits.add(virtualAddLiquidity).sub(virtualRemoveLiquidity);
+        } else {
+            return virtualDeposits;
+        }
+    }
+
     /**
      * @notice deposit available liquidity in the system into the Uniswap Pair, manual for now, require keepers in later iterations
      */
     function depositLiquidity() external {
         require(msg.sender == tx.origin, "TimeLoans::depositLiquidity: not an EOA keeper");
-        UNI.addLiquidity(token0, token1, IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), 0, 0, address(this), now.add(1800));
+        IERC20(token0).approve(address(UNI), IERC20(token0).balanceOf(address(this)));
+        IERC20(token1).approve(address(UNI), IERC20(token1).balanceOf(address(this)));
+        (,,uint liquidity) = UNI.addLiquidity(token0, token1, IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), 0, 0, address(this), now.add(1800));
+        virtualAddLiquidity = virtualAddLiquidity.add(liquidity);
     }
 
     /**
