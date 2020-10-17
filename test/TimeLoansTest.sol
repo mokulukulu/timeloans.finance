@@ -58,6 +58,8 @@ interface TimeLoansLike {
     function liquidityDeposits() external returns (uint);
     function liquidityFreed() external returns (uint);
     function liquidityInUse() external returns (uint);
+    function liquidityRemoved() external returns (uint);
+    function liquidityWithdrawals() external returns (uint);
     function balanceOf(address) external returns (uint);
 }
 
@@ -89,6 +91,8 @@ contract TimeLoansTest is script {
         fmt.printf("liquidityDeposits=%.18u\n",abi.encode(TL.liquidityDeposits()));
         fmt.printf("liquidityFreed=%.18u\n",abi.encode(TL.liquidityFreed()));
         fmt.printf("liquidityInUse=%.18u\n",abi.encode(TL.liquidityInUse()));
+        fmt.printf("liquidityRemoved=%.18u\n",abi.encode(TL.liquidityRemoved()));
+        fmt.printf("liquidityWithdrawals=%.18u\n",abi.encode(TL.liquidityWithdrawals()));
     }
 
     function withdraw() external {
