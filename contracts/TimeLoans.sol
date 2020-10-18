@@ -1027,13 +1027,21 @@ contract TimeLoanPairFactory {
     /// @notice array of all deployed contracts
     address[] public deployed;
     
+    /**
+     * @notice Deploy an undeployed pair for a given pool
+     * @param _pair The uniswap pair to deploy
+     * @return address of the deployed pair
+     */
     function deploy(IUniswapV2Pair _pair) external returns (address) {
         require(pairs[address(_pair)] == address(0x0), "TimeLoanPairFactory::deploy: pair already created");
         pairs[address(_pair)] = address(new TimeLoanPair(_pair));
         deployed.push(address(_pair));
         return pairs[address(_pair)];
     }
-    
+    /**
+     * @notice returns all the addresses in a single view
+     * @return all deployed addresses
+     */
     function addresses() external view returns (address[] memory) {
         return deployed;
     }
