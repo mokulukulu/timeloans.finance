@@ -801,9 +801,20 @@ contract TimeLoanPair {
      * @param amount the amount of collateral being provided
      * @return minOut the minimum amount of liquidity to borrow
      */
-    function quote(address collateral, address borrow, uint amount) public view returns (uint minOut) {
+    function quote(address collateral, address borrow, uint amount) external view returns (uint minOut) {
         uint _received = (amount.sub(amount.mul(FEE).div(BASE))).mul(LTV).div(BASE);
-        return ORACLE.quote(collateral, borrow, _received);
+        return quoteOracle(collateral, borrow, _received);
+    }
+
+    /**
+     * @notice Provides a quote of how much output can be expected given the inputs unadjusted for fee
+     * @param collateral the asset being used as collateral
+     * @param borrow the asset being borrowed
+     * @param amount the amount of collateral being provided
+     * @return amountOut the amount of liquidity to borrow
+     */
+    function quoteOracle(address collateral, address borrow, uint amount) public view returns (uint amountOut) {
+        return ORACLE.quote(collateral, borrow, amount);
     }
 
     /**
@@ -829,7 +840,7 @@ contract TimeLoanPair {
      * @return amountOut the amount of liquidity to borrow
      */
     function quoteMin(address collateral, address borrow, uint amount) public view returns (uint amountOut) {
-        uint _oracle = quote(collateral, borrow, amount);
+        uint _oracle = quoteOracle(collateral, borrow, amount);
         uint _swap = quoteSwap(collateral, amount);
         return Math.min(_oracle, _swap);
     }
