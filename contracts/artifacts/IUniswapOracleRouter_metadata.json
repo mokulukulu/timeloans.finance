@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.6.12+commit.27d51765"
+		"version": "0.6.6+commit.6c089d02"
 	},
 	"language": "Solidity",
 	"output": {
@@ -36,19 +36,15 @@
 			}
 		],
 		"devdoc": {
-			"kind": "dev",
-			"methods": {},
-			"version": 1
+			"methods": {}
 		},
 		"userdoc": {
-			"kind": "user",
-			"methods": {},
-			"version": 1
+			"methods": {}
 		}
 	},
 	"settings": {
 		"compilationTarget": {
-			"localhost/TimeLoans.sol": "IUniswapOracleRouter"
+			"localhost/contracts/TimeLoans.sol": "IUniswapOracleRouter"
 		},
 		"evmVersion": "istanbul",
 		"libraries": {},
@@ -62,9 +58,8 @@
 		"remappings": []
 	},
 	"sources": {
-		"localhost/TimeLoans.sol": {
+		"localhost/contracts/TimeLoans.sol": {
 			"keccak256": "0x48fbc9f33e08b70da3d39fef25242bd3923eb402f89c9ba031cc8526f037cc50",
-			"license": "MIT",
 			"urls": [
 				"bzz-raw://27f6df37317364993602085e7ce9eaac1645a5796c0304620e08a098079fc041",
 				"dweb:/ipfs/QmTbmF4Nv9SZywQyiVoyGujQzydVvHeMZSzeBVxVTTMdxg"

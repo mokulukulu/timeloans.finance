@@ -76,18 +76,18 @@ interface TimeLoansFactoryLike {
 
 contract TimeLoansTest is script {
     using SafeMath for uint;
-
+    
     TimeLoansFactoryLike constant private TLF = TimeLoansFactoryLike(0x2Df93404574DfF883e2b35911a684dAb1760Da0d);
     TimeLoansLike private TL;
     ERC20Like constant private PAIR = ERC20Like(0xBb2b8038a1640196FbE3e38816F3e67Cba72D940);
-
+    
     ERC20Like constant private WBTC = ERC20Like(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
     ERC20Like constant private WETH = ERC20Like(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-
+    
     function deploy() external {
         TL = TimeLoansLike(TLF.deploy(address(PAIR)));
     }
-
+    
 	function run() public {
 	    run(this.deploy).withCaller(0x2D407dDb06311396fE14D4b49da5F0471447d45C);
 	    run(this.deposit).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
@@ -102,16 +102,16 @@ contract TimeLoansTest is script {
 	    run(this.withdraw).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
 	    run(this.stats).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
 	}
-
+	
 	function close() external {
-	    (address owner,
-	    address collateral,
-	    address borrowed,
-	    uint creditIn,
-	    uint amountOut,
-	    uint liquidityInUse,
-	    uint created,
-	    uint expire,
+	    (address owner, 
+	    address collateral, 
+	    address borrowed, 
+	    uint creditIn, 
+	    uint amountOut, 
+	    uint liquidityInUse, 
+	    uint created, 
+	    uint expire, 
 	    bool open) = TL.positions(0);
 	    bool success = TL.close(0);
 	    fmt.printf("owner=%a\n",abi.encode(owner));
@@ -125,11 +125,11 @@ contract TimeLoansTest is script {
 	    fmt.printf("open=%b\n",abi.encode(open));
 	    fmt.printf("closed=%b\n",abi.encode(success));
 	}
-
+	
 	function depositLiquidity() external {
 	    TL.depositLiquidity();
 	}
-
+	
 	function quote() external {
 	    uint _borrow = TL.quote(address(WBTC), address(WETH), 1e8);
 	    fmt.printf("quote=%.18u\n",abi.encode(_borrow));
@@ -138,7 +138,7 @@ contract TimeLoansTest is script {
 	    fmt.printf("calculateLiquidityToBurn=%.18u\n",abi.encode(_burn));
 	    TL.loan(address(WBTC), address(WETH), 1e8, 0);
 	}
-
+    
     function deposit() external {
         fmt.printf("balanceOf=%.18u\n",abi.encode(PAIR.balanceOf(address(this))));
         PAIR.approve(address(TL), uint(-1));
@@ -146,7 +146,7 @@ contract TimeLoansTest is script {
         fmt.printf("balanceOf=%.18u\n",abi.encode(PAIR.balanceOf(address(this))));
         fmt.printf("TL.balanceOf=%.18u\n",abi.encode(TL.balanceOf(address(this))));
     }
-
+    
     function stats() external {
         fmt.printf("liquidityAdded=%.18u\n",abi.encode(TL.liquidityAdded()));
         fmt.printf("liquidityBalance=%.18u\n",abi.encode(TL.liquidityBalance()));
@@ -160,9 +160,9 @@ contract TimeLoansTest is script {
         fmt.printf("ETH.balanceOf=%.18u\n",abi.encode(WETH.balanceOf(address(TL))));
         fmt.printf("liquidityOf(WBTC)=%.18u\n",abi.encode(TL.liquidityOf(address(WBTC))));
         fmt.printf("WBTC.balanceOf=%.18u\n",abi.encode(WBTC.balanceOf(address(TL))));
-
+        
     }
-
+    
     function withdraw() external {
         fmt.printf("balanceOf=%.18u\n",abi.encode(PAIR.balanceOf(address(this))));
         TL.withdraw(1.5e15);

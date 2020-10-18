@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.6.12+commit.27d51765"
+		"version": "0.6.6+commit.6c089d02"
 	},
 	"language": "Solidity",
 	"output": {
@@ -1214,7 +1214,6 @@
 			}
 		],
 		"devdoc": {
-			"kind": "dev",
 			"methods": {
 				"allowance(address,address)": {
 					"params": {
@@ -1226,7 +1225,7 @@
 					}
 				},
 				"approve(address,uint256)": {
-					"details": "This will overwrite the approval amount for `spender`  and is subject to issues noted [here](https://eips.ethereum.org/EIPS/eip-20#approve)",
+					"details": "This will overwrite the approval amount for `spender` and is subject to issues noted [here](https://eips.ethereum.org/EIPS/eip-20#approve)",
 					"params": {
 						"amount": "The number of tokens that are approved (2^256-1 means infinite)",
 						"spender": "The address of the account which may transfer tokens"
@@ -1259,11 +1258,6 @@
 						"_0": "success/failure"
 					}
 				},
-				"closeAllOpen()": {
-					"returns": {
-						"_0": "the last index processed"
-					}
-				},
 				"closeInBatches(uint256)": {
 					"params": {
 						"size": "the maximum size of batch to execute"
@@ -1278,16 +1272,6 @@
 					},
 					"returns": {
 						"_0": "success/failure"
-					}
-				},
-				"depositAll()": {
-					"returns": {
-						"_0": "success/failure"
-					}
-				},
-				"liquidityBalance()": {
-					"returns": {
-						"_0": "the net liquidity sum"
 					}
 				},
 				"liquidityOf(address)": {
@@ -1390,68 +1374,11 @@
 					"returns": {
 						"_0": "success/failure"
 					}
-				},
-				"withdrawAll()": {
-					"returns": {
-						"_0": "success/failure"
-					}
 				}
-			},
-			"version": 1
+			}
 		},
 		"userdoc": {
-			"events": {
-				"Approval(address,address,uint256)": {
-					"notice": "The standard EIP-20 approval event"
-				},
-				"Borrowed(uint256,address,address,address,uint256,uint256,uint256,uint256)": {
-					"notice": "The borrow event for any borrower"
-				},
-				"Closed(uint256,address,address,address,uint256,uint256,uint256,uint256)": {
-					"notice": "The close loan event when processing expired loans"
-				},
-				"Deposited(address,address,uint256,uint256)": {
-					"notice": "Deposited event for creditor/LP"
-				},
-				"Repaid(uint256,address,address,address,uint256,uint256,uint256,uint256)": {
-					"notice": "The close loan event when processing expired loans"
-				},
-				"Transfer(address,address,uint256)": {
-					"notice": "The standard EIP-20 transfer event"
-				},
-				"Withdrew(address,address,uint256,uint256)": {
-					"notice": "Withdawn event for creditor/LP"
-				}
-			},
-			"kind": "user",
 			"methods": {
-				"BASE()": {
-					"notice": "base for all % based calculations "
-				},
-				"BUFFER()": {
-					"notice": "105% liquidity buffer on withdrawing liquidity"
-				},
-				"DELAY()": {
-					"notice": "the delay for a position to be closed"
-				},
-				"DOMAIN_TYPEHASH()": {
-					"notice": "The EIP-712 typehash for the contract's domain"
-				},
-				"FEE()": {
-					"notice": "0.6% initiation fee for all loans"
-				},
-				"LTV()": {
-					"notice": "80% loan to value ratio"
-				},
-				"ORACLE()": {
-					"notice": "Uniswap Oracle Router used for all 24 hour TWAP price metrics"
-				},
-				"PERMIT_TYPEHASH()": {
-					"notice": "The EIP-712 typehash for the permit struct used by the contract"
-				},
-				"UNI()": {
-					"notice": "Uniswap V2 Router used for all swaps and liquidity management"
-				},
 				"allowance(address,address)": {
 					"notice": "Get the number of tokens `spender` is approved to spend on behalf of `account`"
 				},
@@ -1474,9 +1401,6 @@
 					"notice": "batch close any pending open loans that have expired"
 				},
 				"constructor": "constructor takes a uniswap pair as an argument to set its 2 borrowable assets",
-				"decimals()": {
-					"notice": "EIP-20 token decimals for this token"
-				},
 				"deposit(uint256)": {
 					"notice": "deposit `amount` amount of liquidity for user"
 				},
@@ -1486,56 +1410,17 @@
 				"depositLiquidity()": {
 					"notice": "deposit available liquidity in the system into the Uniswap Pair, manual for now, require keepers in later iterations"
 				},
-				"liquidityAdded()": {
-					"notice": "total liquidity added via addLiquidity"
-				},
 				"liquidityBalance()": {
 					"notice": "the current net liquidity positions"
-				},
-				"liquidityDeposits()": {
-					"notice": "total liquidity deposited"
-				},
-				"liquidityFreed()": {
-					"notice": "total liquidity freed up from closed loans"
-				},
-				"liquidityInUse()": {
-					"notice": "total liquidity currently in use by pending loans"
 				},
 				"liquidityOf(address)": {
 					"notice": "returns the available liquidity (including LP tokens) for a given asset"
 				},
-				"liquidityRemoved()": {
-					"notice": "total liquidity removed via removeLiquidity"
-				},
-				"liquidityWithdrawals()": {
-					"notice": "total liquidity withdrawn"
-				},
 				"loan(address,address,uint256,uint256)": {
 					"notice": "Returns greater than `outMin` amount of `borrow` based on `amount` of `collateral supplied"
 				},
-				"loans(address,uint256)": {
-					"notice": "mapping of loans assigned to users"
-				},
-				"name()": {
-					"notice": "EIP-20 token name for this token"
-				},
-				"nextIndex()": {
-					"notice": "the tip index of the positions array"
-				},
-				"nonces(address)": {
-					"notice": "A record of states for signing / validating signatures"
-				},
-				"pair()": {
-					"notice": "The underlying Uniswap Pair used for loan liquidity"
-				},
 				"permit(address,address,uint256,uint256,uint8,bytes32,bytes32)": {
 					"notice": "Triggers an approval from owner to spends"
-				},
-				"positions(uint256)": {
-					"notice": "array of all loan positions"
-				},
-				"processedIndex()": {
-					"notice": "the last index processed by the contract"
 				},
 				"quote(address,address,uint256)": {
 					"notice": "Provides a quote of how much output can be expected given the inputs"
@@ -1552,18 +1437,6 @@
 				"repay(uint256)": {
 					"notice": "Repay a pending loan with `id` anyone can repay, no owner check"
 				},
-				"symbol()": {
-					"notice": "EIP-20 token symbol for this token"
-				},
-				"token0()": {
-					"notice": "The token0 of the Uniswap Pair"
-				},
-				"token1()": {
-					"notice": "The token1 of the Uniswap Pair"
-				},
-				"totalSupply()": {
-					"notice": "Total number of tokens in circulation"
-				},
 				"transfer(address,uint256)": {
 					"notice": "Transfer `amount` tokens from `msg.sender` to `dst`"
 				},
@@ -1576,13 +1449,12 @@
 				"withdrawAll()": {
 					"notice": "withdraw all liquidity from msg.sender shares"
 				}
-			},
-			"version": 1
+			}
 		}
 	},
 	"settings": {
 		"compilationTarget": {
-			"localhost/TimeLoans.sol": "TimeLoanPair"
+			"localhost/contracts/TimeLoans.sol": "TimeLoanPair"
 		},
 		"evmVersion": "istanbul",
 		"libraries": {},
@@ -1596,9 +1468,8 @@
 		"remappings": []
 	},
 	"sources": {
-		"localhost/TimeLoans.sol": {
+		"localhost/contracts/TimeLoans.sol": {
 			"keccak256": "0x48fbc9f33e08b70da3d39fef25242bd3923eb402f89c9ba031cc8526f037cc50",
-			"license": "MIT",
 			"urls": [
 				"bzz-raw://27f6df37317364993602085e7ce9eaac1645a5796c0304620e08a098079fc041",
 				"dweb:/ipfs/QmTbmF4Nv9SZywQyiVoyGujQzydVvHeMZSzeBVxVTTMdxg"

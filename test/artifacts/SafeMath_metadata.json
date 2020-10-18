@@ -1,0 +1,44 @@
+{
+	"compiler": {
+		"version": "0.5.17+commit.d19bba13"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [],
+		"devdoc": {
+			"methods": {}
+		},
+		"userdoc": {
+			"methods": {}
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"localhost/test/TimeLoansTest.sol": "SafeMath"
+		},
+		"evmVersion": "istanbul",
+		"libraries": {},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"localhost/test/TimeLoansTest.sol": {
+			"keccak256": "0x08ae1d6ffe54be4e899a03f9d01fb712eb23e0199f70f9b919eaa85e1222fff1",
+			"urls": [
+				"bzz-raw://a04544b3b5359e907d907feca45923831628ef8bd92cebcbf11220ef7175b78a",
+				"dweb:/ipfs/QmZ68Mg2qFteg2vUeZi1cmogb2EBR894sSwF9jevv2AwUC"
+			]
+		},
+		"localhost/test/script.sol": {
+			"keccak256": "0x0055b0d335c21866e90d3ad7595b42a93c5d60c58865ae50cd63f83407466e6e",
+			"urls": [
+				"bzz-raw://177e09757aff36c8776bc197214847b0d45c1b263b74682ae4c6cf8753458a6e",
+				"dweb:/ipfs/QmNiXpjFvm6JGD8Xv2kP3Su6opcrJrng6UW8TuMbe2xHYS"
+			]
+		}
+	},
+	"version": 1
+}
