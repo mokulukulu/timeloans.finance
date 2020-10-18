@@ -497,7 +497,7 @@ interface IUniswapOracleRouter {
 
 contract TimeLoanPair {
     using SafeMath for uint;
-
+    
     /// @notice EIP-20 token name for this token
     string public constant name = "Time Loan Pair LP";
 
@@ -506,10 +506,10 @@ contract TimeLoanPair {
 
     /// @notice EIP-20 token decimals for this token
     uint8 public constant decimals = 18;
-
+    
     /// @notice Total number of tokens in circulation
     uint public totalSupply = 0; // Initial 0
-
+    
     mapping (address => mapping (address => uint)) internal allowances;
     mapping (address => uint) internal balances;
 
@@ -530,48 +530,48 @@ contract TimeLoanPair {
 
     /// @notice Uniswap V2 Router used for all swaps and liquidity management
     IUniswapV2Router02 public constant UNI = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-
+    
     /// @notice Uniswap Oracle Router used for all 24 hour TWAP price metrics
     IUniswapOracleRouter public constant ORACLE = IUniswapOracleRouter(0x0b5A6b318c39b60e7D8462F888e7fbA89f75D02F);
-
+    
     /// @notice The underlying Uniswap Pair used for loan liquidity
     address public pair;
-
+    
     /// @notice The token0 of the Uniswap Pair
     address public token0;
-
+    
     /// @notice The token1 of the Uniswap Pair
     address public token1;
-
-
+    
+   
     /// @notice Deposited event for creditor/LP
     event Deposited(address indexed creditor, address indexed collateral, uint shares, uint credit);
     /// @notice Withdawn event for creditor/LP
     event Withdrew(address indexed creditor, address indexed collateral, uint shares, uint credit);
-
+    
     /// @notice The borrow event for any borrower
     event Borrowed(uint id, address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut, uint created, uint expire);
     /// @notice The close loan event when processing expired loans
     event Repaid(uint id, address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut, uint created, uint expire);
     /// @notice The close loan event when processing expired loans
     event Closed(uint id, address indexed borrower, address indexed collateral, address indexed borrowed, uint creditIn, uint amountOut, uint created, uint expire);
-
+    
     /// @notice 0.6% initiation fee for all loans
     uint public constant FEE = 600; // 0.6% loan initiation fee
-
+    
     /// @notice 105% liquidity buffer on withdrawing liquidity
     uint public constant BUFFER = 105000; // 105% liquidity buffer
-
+    
     /// @notice 80% loan to value ratio
     uint public constant LTV = 80000; // 80% loan to value ratio
-
-    /// @notice base for all % based calculations
+    
+    /// @notice base for all % based calculations 
     uint public constant BASE = 100000;
-
+    
     /// @notice the delay for a position to be closed
     uint public constant DELAY = 6600; // ~24 hours till position is closed
-
-
+    
+    
     struct position {
         address owner;
         address collateral;
@@ -583,19 +583,19 @@ contract TimeLoanPair {
         uint expire;
         bool open;
     }
-
+    
     /// @notice array of all loan positions
     position[] public positions;
-
+    
     /// @notice the tip index of the positions array
     uint public nextIndex;
-
+    
     /// @notice the last index processed by the contract
     uint public processedIndex;
-
+    
     /// @notice mapping of loans assigned to users
     mapping(address => uint[]) public loans;
-
+    
     /// @notice constructor takes a uniswap pair as an argument to set its 2 borrowable assets
     constructor(IUniswapV2Pair _pair) public {
         symbol = string(abi.encodePacked(IUniswapV2Pair(_pair.token0()).symbol(), "-", IUniswapV2Pair(_pair.token1()).symbol()));
@@ -603,7 +603,7 @@ contract TimeLoanPair {
         token0 = _pair.token0();
         token1 = _pair.token1();
     }
-
+    
     /// @notice total liquidity deposited
     uint public liquidityDeposits;
     /// @notice total liquidity withdrawn
@@ -616,7 +616,7 @@ contract TimeLoanPair {
     uint public liquidityInUse;
     /// @notice total liquidity freed up from closed loans
     uint public liquidityFreed;
-
+    
     /**
      * @notice the current net liquidity positions
      * @return the net liquidity sum
@@ -629,7 +629,7 @@ contract TimeLoanPair {
                 .add(liquidityFreed)
                 .sub(liquidityInUse);
     }
-
+    
     function _mint(address dst, uint amount) internal {
         // mint the amount
         totalSupply = totalSupply.add(amount);
@@ -638,7 +638,7 @@ contract TimeLoanPair {
         balances[dst] = balances[dst].add(amount);
         emit Transfer(address(0), dst, amount);
     }
-
+    
     function _burn(address dst, uint amount) internal {
         // burn the amount
         totalSupply = totalSupply.sub(amount, "TimeLoans::_burn: underflow");
@@ -647,7 +647,7 @@ contract TimeLoanPair {
         balances[dst] = balances[dst].sub(amount, "TimeLoans::_burn: underflow");
         emit Transfer(dst, address(0), amount);
     }
-
+    
     /**
      * @notice withdraw all liquidity from msg.sender shares
      * @return success/failure
@@ -655,7 +655,7 @@ contract TimeLoanPair {
     function withdrawAll() external returns (bool) {
         return withdraw(balances[msg.sender]);
     }
-
+    
     /**
      * @notice withdraw `_shares` amount of liquidity for user
      * @param _shares the amount of shares to burn for liquidity
@@ -664,15 +664,15 @@ contract TimeLoanPair {
     function withdraw(uint _shares) public returns (bool) {
         uint r = liquidityBalance().mul(_shares).div(totalSupply);
         _burn(msg.sender, _shares);
-
+        
         require(IERC20(pair).balanceOf(address(this)) > r, "TimeLoans::withdraw: insufficient liquidity to withdraw, try depositLiquidity()");
-
+        
         IERC20(pair).transfer(msg.sender, r);
         liquidityWithdrawals = liquidityWithdrawals.add(r);
         emit Withdrew(msg.sender, pair, _shares, r);
         return true;
     }
-
+    
     /**
      * @notice deposit all liquidity from msg.sender
      * @return success/failure
@@ -680,7 +680,7 @@ contract TimeLoanPair {
     function depositAll() external returns (bool) {
         return deposit(IERC20(pair).balanceOf(msg.sender));
     }
-
+    
     /**
      * @notice deposit `amount` amount of liquidity for user
      * @param amount the amount of liquidity to add for shares
@@ -699,7 +699,7 @@ contract TimeLoanPair {
         emit Deposited(msg.sender, pair, _shares, amount);
         return true;
     }
-
+    
     /**
      * @notice batch close any pending open loans that have expired
      * @param size the maximum size of batch to execute
@@ -713,7 +713,7 @@ contract TimeLoanPair {
         processedIndex = i;
         return processedIndex;
     }
-
+    
     /**
      * @notice iterate through all open loans and close
      * @return the last index processed
@@ -726,7 +726,7 @@ contract TimeLoanPair {
         processedIndex = i;
         return processedIndex;
     }
-
+    
     /**
      * @notice close a specific loan based on id
      * @param id the `id` of the given loan to close
@@ -749,7 +749,7 @@ contract TimeLoanPair {
         emit Closed(id, _pos.owner, _pos.collateral, _pos.borrowed, _pos.creditIn, _pos.amountOut, _pos.created, _pos.expire);
         return true;
     }
-
+        
     /**
      * @notice returns the available liquidity (including LP tokens) for a given asset
      * @param asset the asset to calculate liquidity for
@@ -761,10 +761,10 @@ contract TimeLoanPair {
                     .mul(IERC20(pair).balanceOf(address(this)))
                     .div(IERC20(pair).totalSupply()));
     }
-
+    
     /**
      * @notice calculates the amount of liquidity to burn to get the amount of asset
-     * @param amount the amount of asset required as output
+     * @param amount the amount of asset required as output 
      * @return the amount of liquidity to burn
      */
     function calculateLiquidityToBurn(address asset, uint amount) public view returns (uint) {
@@ -772,7 +772,7 @@ contract TimeLoanPair {
                 .mul(amount)
                 .div(IERC20(asset).balanceOf(pair));
     }
-
+    
     /**
      * @notice withdraw liquidity to get the amount of tokens required to borrow
      * @param asset the asset output required
@@ -781,7 +781,7 @@ contract TimeLoanPair {
     function _withdrawLiquidity(address asset, uint amount) internal returns (uint withdrew) {
         withdrew = calculateLiquidityToBurn(asset, amount);
         withdrew = withdrew.mul(BUFFER).div(BASE);
-
+        
         uint _amountAMin = 0;
         uint _amountBMin = 0;
         if (asset == token0) {
@@ -793,7 +793,7 @@ contract TimeLoanPair {
         UNI.removeLiquidity(token0, token1, withdrew, _amountAMin, _amountBMin, address(this), now.add(1800));
         liquidityRemoved = liquidityRemoved.add(withdrew);
     }
-
+    
     /**
      * @notice Provides a quote of how much output can be expected given the inputs
      * @param collateral the asset being used as collateral
@@ -805,7 +805,7 @@ contract TimeLoanPair {
         uint _received = (amount.sub(amount.mul(FEE).div(BASE))).mul(LTV).div(BASE);
         return quoteOracle(collateral, borrow, _received);
     }
-
+    
     /**
      * @notice Provides a quote of how much output can be expected given the inputs unadjusted for fee
      * @param collateral the asset being used as collateral
@@ -816,7 +816,7 @@ contract TimeLoanPair {
     function quoteOracle(address collateral, address borrow, uint amount) public view returns (uint amountOut) {
         return ORACLE.quote(collateral, borrow, amount);
     }
-
+    
     /**
      * @notice Provides a quote of how much output can be expected if a trade were to be executed
      * @param collateral the asset being sold
@@ -831,7 +831,7 @@ contract TimeLoanPair {
             return UNI.getAmountOut(amount, reserve1, reserve0);
         }
     }
-
+    
     /**
      * @notice Provides a minimum quote of quoteSwap and quote
      * @param collateral the asset being used as collateral
@@ -844,7 +844,7 @@ contract TimeLoanPair {
         uint _swap = quoteSwap(collateral, amount);
         return Math.min(_oracle, _swap);
     }
-
+    
     /**
      * @notice deposit available liquidity in the system into the Uniswap Pair, manual for now, require keepers in later iterations
      */
@@ -855,7 +855,7 @@ contract TimeLoanPair {
         (,,uint _added) = UNI.addLiquidity(token0, token1, IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), 0, 0, address(this), now.add(1800));
         liquidityAdded = liquidityAdded.add(_added);
     }
-
+    
     /**
      * @notice Returns greater than `outMin` amount of `borrow` based on `amount` of `collateral supplied
      * @param collateral the asset being used as collateral
@@ -867,32 +867,32 @@ contract TimeLoanPair {
         uint _before = IERC20(collateral).balanceOf(address(this));
         IERC20(collateral).transferFrom(msg.sender, address(this), amount);
         uint _after = IERC20(collateral).balanceOf(address(this));
-
+        
         uint _received = _after.sub(_before);
         uint _fee = _received.mul(FEE).div(BASE);
         _received = _received.sub(_fee);
-
+        
         uint _ltv = _received.mul(LTV).div(BASE);
-
+        
         uint _amountOut = quoteMin(collateral, borrow, _ltv);
         require(_amountOut >= outMin, "TimeLoans::loan: slippage");
         require(liquidityOf(borrow) > _amountOut, "TimeLoans::loan: insufficient liquidity");
-
+        
         uint _available = IERC20(borrow).balanceOf(address(this));
         uint _withdrew = 0;
         if (_available < _amountOut) {
             _withdrew = _withdrawLiquidity(borrow, _amountOut.sub(_available));
             liquidityInUse = liquidityInUse.add(_withdrew);
         }
-
+        
         positions.push(position(msg.sender, collateral, borrow, _received, _amountOut, _withdrew, block.number, block.number.add(DELAY), true));
         loans[msg.sender].push(nextIndex);
-
+        
         IERC20(borrow).transfer(msg.sender, _amountOut);
         emit Borrowed(nextIndex, msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY));
         return nextIndex++;
     }
-
+    
     /**
      * @notice Repay a pending loan with `id` anyone can repay, no owner check
      * @param id the id of the loan to close
@@ -913,7 +913,7 @@ contract TimeLoanPair {
         emit Repaid(id, _pos.owner, _pos.collateral, _pos.borrowed, _pos.creditIn, _pos.amountOut, _pos.created, _pos.expire);
         return true;
     }
-
+    
     /**
      * @notice Get the number of tokens `spender` is approved to spend on behalf of `account`
      * @param account The address of the account holding the funds
@@ -1008,7 +1008,7 @@ contract TimeLoanPair {
     function _transferTokens(address src, address dst, uint amount) internal {
         require(src != address(0), "TimeLoans::_transferTokens: cannot transfer from the zero address");
         require(dst != address(0), "TimeLoans::_transferTokens: cannot transfer to the zero address");
-
+        
         balances[src] = balances[src].sub(amount, "TimeLoans::_transferTokens: transfer amount exceeds balance");
         balances[dst] = balances[dst].add(amount, "TimeLoans::_transferTokens: transfer amount overflows");
         emit Transfer(src, dst, amount);
@@ -1024,7 +1024,7 @@ contract TimeLoanPair {
 contract TimeLoanPairFactory {
     mapping(address => address) public pairs;
     address[] public deployed;
-
+    
     function deploy(IUniswapV2Pair _pair) external returns (address) {
         require(pairs[address(_pair)] == address(0x0), "TimeLoanPairFactory::deploy: pair already created");
         pairs[address(_pair)] = address(new TimeLoanPair(_pair));
