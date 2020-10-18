@@ -1022,7 +1022,9 @@ contract TimeLoanPair {
 }
 
 contract TimeLoanPairFactory {
+    /// @notice mapping of all uniswap pairs to TimeLoanPairs
     mapping(address => address) public pairs;
+    /// @notice array of all deployed contracts
     address[] public deployed;
     
     function deploy(IUniswapV2Pair _pair) external returns (address) {
@@ -1030,5 +1032,9 @@ contract TimeLoanPairFactory {
         pairs[address(_pair)] = address(new TimeLoanPair(_pair));
         deployed.push(address(_pair));
         return pairs[address(_pair)];
+    }
+    
+    function addresses() external view returns (address[] memory) {
+        return deployed;
     }
 }

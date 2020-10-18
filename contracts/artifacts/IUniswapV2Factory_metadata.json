@@ -193,10 +193,10 @@
 	},
 	"sources": {
 		"localhost/contracts/TimeLoans.sol": {
-			"keccak256": "0x48fbc9f33e08b70da3d39fef25242bd3923eb402f89c9ba031cc8526f037cc50",
+			"keccak256": "0x88574ec3ed602293c2abf534a33fbfb187b64f814704917b9780b30439eeb8ac",
 			"urls": [
-				"bzz-raw://27f6df37317364993602085e7ce9eaac1645a5796c0304620e08a098079fc041",
-				"dweb:/ipfs/QmTbmF4Nv9SZywQyiVoyGujQzydVvHeMZSzeBVxVTTMdxg"
+				"bzz-raw://784edd1917279d99fe40a371461b311d6d582466a37f526ae4e56e09d88a3124",
+				"dweb:/ipfs/QmXcYLkvcXWw7TRiQq52XNZje9pGXcEfbSUvVMTW4ddFqD"
 			]
 		}
 	},
