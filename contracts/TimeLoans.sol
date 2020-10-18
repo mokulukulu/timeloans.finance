@@ -740,7 +740,7 @@ contract TimeLoanPair {
      * @return the amount of liquidity to burn
      */
     function calculateLiquidityToBurn(address asset, uint amount) public view returns (uint) {
-        return IERC20(pair).balanceOf(address(this))
+        return IERC20(pair).totalSupply()
                 .mul(amount)
                 .div(IERC20(asset).balanceOf(pair));
     }
@@ -955,10 +955,13 @@ contract TimeLoanPair {
 }
 
 contract TimeLoanPairFactory {
-    mapping(address => address) pairs;
+    mapping(address => address) public pairs;
+    address[] public deployed;
 
-    function deploy(IUniswapV2Pair _pair) external {
+    function deploy(IUniswapV2Pair _pair) external returns (address) {
         require(pairs[address(_pair)] == address(0x0), "TimeLoanPairFactory::deploy: pair already created");
         pairs[address(_pair)] = address(new TimeLoanPair(_pair));
+        deployed.push(address(_pair));
+        return pairs[address(_pair)];
     }
 }
