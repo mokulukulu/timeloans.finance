@@ -598,8 +598,8 @@ contract TimeLoanPair {
                 .sub(liquidityWithdrawals)
                 .add(liquidityAdded)
                 .sub(liquidityRemoved)
-                .add(liquidityInUse)
-                .sub(liquidityFreed);
+                .add(liquidityFreed)
+                .sub(liquidityInUse);
     }
 
     function _mint(address dst, uint amount) internal {
