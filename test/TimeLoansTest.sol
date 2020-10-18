@@ -61,6 +61,9 @@ interface TimeLoansLike {
     function liquidityRemoved() external returns (uint);
     function liquidityWithdrawals() external returns (uint);
     function balanceOf(address) external returns (uint);
+    function quote(address, address, uint) external view returns (uint);
+    function loan(address, address, uint, uint) external returns (uint);
+    function calculateLiquidityToBurn(address, uint) external view returns (uint);
 }
 
 contract TimeLoansTest is script {
@@ -69,11 +72,24 @@ contract TimeLoansTest is script {
     TimeLoansLike constant private TL = TimeLoansLike(0x2fCd3EBDc9076B5D194a0417e12528d54804f7eE);
     ERC20Like constant private PAIR = ERC20Like(0xBb2b8038a1640196FbE3e38816F3e67Cba72D940);
 
+    ERC20Like constant private WBTC = ERC20Like(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
+    ERC20Like constant private WETH = ERC20Like(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+
 	function run() public {
 	    run(this.deposit).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
 	    run(this.stats).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
+	    run(this.quote).withCaller(0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE);
 	    run(this.withdraw).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
 	    run(this.stats).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
+	}
+
+	function quote() external {
+	    uint _borrow = TL.quote(address(WBTC), address(WETH), 1e8);
+	    fmt.printf("quote=%.18u\n",abi.encode(_borrow));
+	    WBTC.approve(address(TL), uint(-1));
+	    uint _burn = TL.calculateLiquidityToBurn(address(WETH), _borrow);
+	    fmt.printf("calculateLiquidityToBurn=%.18u\n",abi.encode(_burn));
+	    TL.loan(address(WBTC), address(WETH), 1e8, 0);
 	}
 
     function deposit() external {
@@ -97,7 +113,7 @@ contract TimeLoansTest is script {
 
     function withdraw() external {
         fmt.printf("balanceOf=%.18u\n",abi.encode(PAIR.balanceOf(address(this))));
-        TL.withdraw(1e15);
+        TL.withdraw(1.563e15);
         fmt.printf("balanceOf=%.18u\n",abi.encode(PAIR.balanceOf(address(this))));
     }
 }
