@@ -93,7 +93,7 @@ calculates the amount of liquidity to burn to get the amount of asset
 
 
 
-### `_withdrawLiquidity(address asset, uint256 amount) → uint256 withdrawn` (internal)
+### `_withdrawLiquidity(address asset, uint256 amount) → uint256 withdrew` (internal)
 
 withdraw liquidity to get the amount of tokens required to borrow
 
