@@ -261,6 +261,34 @@ library SafeMath {
     }
 }
 
+/**
+ * @dev Standard math utilities missing in the Solidity language.
+ */
+library Math {
+    /**
+     * @dev Returns the largest of two numbers.
+     */
+    function max(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a >= b ? a : b;
+    }
+
+    /**
+     * @dev Returns the smallest of two numbers.
+     */
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
+    }
+
+    /**
+     * @dev Returns the average of two numbers. The result is rounded towards
+     * zero.
+     */
+    function average(uint256 a, uint256 b) internal pure returns (uint256) {
+        // (a + b) / 2 can overflow, so we distribute
+        return (a / 2) + (b / 2) + ((a % 2 + b % 2) / 2);
+    }
+}
+
 interface IUniswapV2Factory {
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
 
@@ -773,9 +801,37 @@ contract TimeLoanPair {
      * @param amount the amount of collateral being provided
      * @return minOut the minimum amount of liquidity to borrow
      */
-    function quote(address collateral, address borrow, uint amount) external view returns (uint minOut) {
+    function quote(address collateral, address borrow, uint amount) public view returns (uint minOut) {
         uint _received = (amount.sub(amount.mul(FEE).div(BASE))).mul(LTV).div(BASE);
         return ORACLE.quote(collateral, borrow, _received);
+    }
+
+    /**
+     * @notice Provides a quote of how much output can be expected if a trade were to be executed
+     * @param collateral the asset being sold
+     * @param amount the amount of collateral being provided
+     * @return amountOut the output of the trade
+     */
+    function quoteSwap(address collateral, uint amount) public view returns (uint amountOut) {
+        (uint reserve0, uint reserve1,) = IUniswapV2Pair(pair).getReserves();
+        if (collateral == token0) {
+            return UNI.getAmountOut(amount, reserve0, reserve1);
+        } else {
+            return UNI.getAmountOut(amount, reserve1, reserve0);
+        }
+    }
+
+    /**
+     * @notice Provides a minimum quote of quoteSwap and quote
+     * @param collateral the asset being used as collateral
+     * @param borrow the asset being borrowed
+     * @param amount the amount of collateral being provided
+     * @return amountOut the amount of liquidity to borrow
+     */
+    function quoteMin(address collateral, address borrow, uint amount) public view returns (uint amountOut) {
+        uint _oracle = quote(collateral, borrow, amount);
+        uint _swap = quoteSwap(collateral, amount);
+        return Math.min(_oracle, _swap);
     }
 
     /**
@@ -807,7 +863,7 @@ contract TimeLoanPair {
 
         uint _ltv = _received.mul(LTV).div(BASE);
 
-        uint _amountOut = ORACLE.quote(collateral, borrow, _ltv);
+        uint _amountOut = quoteMin(collateral, borrow, _ltv);
         require(_amountOut >= outMin, "TimeLoans::loan: slippage");
         require(liquidityOf(borrow) > _amountOut, "TimeLoans::loan: insufficient liquidity");
 
