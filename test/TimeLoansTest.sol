@@ -65,6 +65,8 @@ interface TimeLoansLike {
     function loan(address, address, uint, uint) external returns (uint);
     function calculateLiquidityToBurn(address, uint) external view returns (uint);
     function liquidityOf(address) external returns (uint);
+    function close(uint) external returns (bool);
+    function positions(uint) external view returns (address, address, address, uint, uint, uint, uint, uint, bool);
 }
 
 interface TimeLoansFactoryLike {
@@ -74,7 +76,7 @@ interface TimeLoansFactoryLike {
 contract TimeLoansTest is script {
     using SafeMath for uint;
 
-    TimeLoansFactoryLike constant private TLF = TimeLoansFactoryLike(0xcb83fF7834183F94c93a18eBad87a860dbF90E16);
+    TimeLoansFactoryLike constant private TLF = TimeLoansFactoryLike(0x41c9D327D09ed0D2F1E1dE4362848A1a57Aa81E7);
     TimeLoansLike private TL;
     ERC20Like constant private PAIR = ERC20Like(0xBb2b8038a1640196FbE3e38816F3e67Cba72D940);
 
@@ -91,8 +93,33 @@ contract TimeLoansTest is script {
 	    run(this.stats).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
 	    run(this.quote).withCaller(0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE);
 	    run(this.stats).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
+	    advanceBlocks(6601);
+	    run(this.close).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
 	    run(this.withdraw).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
 	    run(this.stats).withCaller(0xa6BFEDc4BF9bdb3F09A448518206023E8C009DDf);
+	}
+
+	function close() external {
+	    (address owner,
+	    address collateral,
+	    address borrowed,
+	    uint creditIn,
+	    uint amountOut,
+	    uint liquidityInUse,
+	    uint created,
+	    uint expire,
+	    bool open) = TL.positions(0);
+	    bool success = TL.close(0);
+	    fmt.printf("owner=%a\n",abi.encode(owner));
+	    fmt.printf("collateral=%a\n",abi.encode(collateral));
+	    fmt.printf("borrowed=%a\n",abi.encode(borrowed));
+	    fmt.printf("creditIn=%.8u\n",abi.encode(creditIn));
+	    fmt.printf("amountOut=%.18u\n",abi.encode(amountOut));
+	    fmt.printf("liquidityInUse=%.18u\n",abi.encode(liquidityInUse));
+	    fmt.printf("created=%.18u\n",abi.encode(created));
+	    fmt.printf("expire=%.18u\n",abi.encode(expire));
+	    fmt.printf("open=%b\n",abi.encode(open));
+	    fmt.printf("closed=%b\n",abi.encode(success));
 	}
 
 	function quote() external {

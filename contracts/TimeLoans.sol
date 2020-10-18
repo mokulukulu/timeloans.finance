@@ -712,7 +712,7 @@ contract TimeLoanPair {
         if (!_pos.open) {
             return false;
         }
-        if (_pos.expire < block.number) {
+        if (_pos.expire > block.number) {
             return false;
         }
         _pos.open = false;
