@@ -764,7 +764,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"localhost/contracts/TimeLoans.sol": "IUniswapV2Router01"
+			"localhost/contracts/Uniloan.sol": "IUniswapV2Router01"
 		},
 		"evmVersion": "istanbul",
 		"libraries": {},
@@ -778,11 +778,11 @@
 		"remappings": []
 	},
 	"sources": {
-		"localhost/contracts/TimeLoans.sol": {
-			"keccak256": "0x638e6207f3d38171bb60957de188abbdf1645e4c9e780b672cca908b6c921786",
+		"localhost/contracts/Uniloan.sol": {
+			"keccak256": "0x4d9415260fb23da49ec73eee466753427d1cbca129573106d52c7bf41720bafe",
 			"urls": [
-				"bzz-raw://0e4ae48fec063309f8acfccf835c0a441b2b14ee0ceb2e83708276a17d2d7a73",
-				"dweb:/ipfs/QmWVWc534s547PjSEB6fYcjXETrGUkiwt88vrMbceG1bCT"
+				"bzz-raw://4faa02ee4ac0fd5f4a6b5935c21e6b7d50d625bf1e95cc64f490543d4fbb75b2",
+				"dweb:/ipfs/QmQ3fWLeu95FqKXxXcFw7neLcNjJBSYb2ni834w94DcxWe"
 			]
 		}
 	},

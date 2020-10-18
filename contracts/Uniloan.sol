@@ -132,7 +132,7 @@ library SafeMath {
      * - Subtraction cannot underflow.
      */
     function sub(uint a, uint b) internal pure returns (uint) {
-        return sub(a, b, "TimeLoans::SafeMath: subtraction underflow");
+        return sub(a, b, "Uniloan::SafeMath: subtraction underflow");
     }
 
     /**
@@ -495,11 +495,11 @@ interface IUniswapOracleRouter {
     function quote(address tokenIn, address tokenOut, uint amountIn) external view returns (uint amountOut);
 }
 
-contract TimeLoanPair {
+contract UniloanPair {
     using SafeMath for uint;
     
     /// @notice EIP-20 token name for this token
-    string public constant name = "Time Loan Pair LP";
+    string public constant name = "Uniloan Pair LP";
 
     /// @notice EIP-20 token symbol for this token
     string public symbol;
@@ -641,10 +641,10 @@ contract TimeLoanPair {
     
     function _burn(address dst, uint amount) internal {
         // burn the amount
-        totalSupply = totalSupply.sub(amount, "TimeLoans::_burn: underflow");
+        totalSupply = totalSupply.sub(amount, "Uniloan::_burn: underflow");
 
         // transfer the amount to the recipient
-        balances[dst] = balances[dst].sub(amount, "TimeLoans::_burn: underflow");
+        balances[dst] = balances[dst].sub(amount, "Uniloan::_burn: underflow");
         emit Transfer(dst, address(0), amount);
     }
     
@@ -665,7 +665,7 @@ contract TimeLoanPair {
         uint r = liquidityBalance().mul(_shares).div(totalSupply);
         _burn(msg.sender, _shares);
         
-        require(IERC20(pair).balanceOf(address(this)) > r, "TimeLoans::withdraw: insufficient liquidity to withdraw, try depositLiquidity()");
+        require(IERC20(pair).balanceOf(address(this)) > r, "Uniloan::withdraw: insufficient liquidity to withdraw, try depositLiquidity()");
         
         IERC20(pair).transfer(msg.sender, r);
         liquidityWithdrawals = liquidityWithdrawals.add(r);
@@ -744,7 +744,7 @@ contract TimeLoanPair {
             return false;
         }
         _pos.open = false;
-        liquidityInUse = liquidityInUse.sub(_pos.liquidityInUse, "TimeLoans::close: liquidityInUse overflow");
+        liquidityInUse = liquidityInUse.sub(_pos.liquidityInUse, "Uniloan::close: liquidityInUse overflow");
         liquidityFreed = liquidityFreed.add(_pos.liquidityInUse);
         emit Closed(id, _pos.owner, _pos.collateral, _pos.borrowed, _pos.creditIn, _pos.amountOut, _pos.created, _pos.expire);
         return true;
@@ -849,7 +849,7 @@ contract TimeLoanPair {
      * @notice deposit available liquidity in the system into the Uniswap Pair, manual for now, require keepers in later iterations
      */
     function depositLiquidity() external {
-        require(msg.sender == tx.origin, "TimeLoans::depositLiquidity: not an EOA keeper");
+        require(msg.sender == tx.origin, "Uniloan::depositLiquidity: not an EOA keeper");
         IERC20(token0).approve(address(UNI), IERC20(token0).balanceOf(address(this)));
         IERC20(token1).approve(address(UNI), IERC20(token1).balanceOf(address(this)));
         (,,uint _added) = UNI.addLiquidity(token0, token1, IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), 0, 0, address(this), now.add(1800));
@@ -875,8 +875,8 @@ contract TimeLoanPair {
         uint _ltv = _received.mul(LTV).div(BASE);
         
         uint _amountOut = quoteMin(collateral, borrow, _ltv);
-        require(_amountOut >= outMin, "TimeLoans::loan: slippage");
-        require(liquidityOf(borrow) > _amountOut, "TimeLoans::loan: insufficient liquidity");
+        require(_amountOut >= outMin, "Uniloan::loan: slippage");
+        require(liquidityOf(borrow) > _amountOut, "Uniloan::loan: insufficient liquidity");
         
         uint _available = IERC20(borrow).balanceOf(address(this));
         uint _withdrew = 0;
@@ -900,8 +900,8 @@ contract TimeLoanPair {
      */
     function repay(uint id) external returns (bool) {
         position storage _pos = positions[id];
-        require(_pos.open, "TimeLoans::repay: position is already closed");
-        require(_pos.expire < block.number, "TimeLoans::repay: position already expired");
+        require(_pos.open, "Uniloan::repay: position is already closed");
+        require(_pos.expire < block.number, "Uniloan::repay: position already expired");
         IERC20(_pos.borrowed).transferFrom(msg.sender, address(this), _pos.amountOut);
         uint _available = IERC20(_pos.collateral).balanceOf(address(this));
         if (_available < _pos.creditIn) {
@@ -954,9 +954,9 @@ contract TimeLoanPair {
         bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, amount, nonces[owner]++, deadline));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "TimeLoans::permit: invalid signature");
-        require(signatory == owner, "TimeLoans::permit: unauthorized");
-        require(now <= deadline, "TimeLoans::permit: signature expired");
+        require(signatory != address(0), "Uniloan::permit: invalid signature");
+        require(signatory == owner, "Uniloan::permit: unauthorized");
+        require(now <= deadline, "Uniloan::permit: signature expired");
 
         allowances[owner][spender] = amount;
 
@@ -995,7 +995,7 @@ contract TimeLoanPair {
         uint spenderAllowance = allowances[src][spender];
 
         if (spender != src && spenderAllowance != uint(-1)) {
-            uint newAllowance = spenderAllowance.sub(amount, "TimeLoans::transferFrom: transfer amount exceeds spender allowance");
+            uint newAllowance = spenderAllowance.sub(amount, "Uniloan::transferFrom: transfer amount exceeds spender allowance");
             allowances[src][spender] = newAllowance;
 
             emit Approval(src, spender, newAllowance);
@@ -1006,11 +1006,11 @@ contract TimeLoanPair {
     }
 
     function _transferTokens(address src, address dst, uint amount) internal {
-        require(src != address(0), "TimeLoans::_transferTokens: cannot transfer from the zero address");
-        require(dst != address(0), "TimeLoans::_transferTokens: cannot transfer to the zero address");
+        require(src != address(0), "Uniloan::_transferTokens: cannot transfer from the zero address");
+        require(dst != address(0), "Uniloan::_transferTokens: cannot transfer to the zero address");
         
-        balances[src] = balances[src].sub(amount, "TimeLoans::_transferTokens: transfer amount exceeds balance");
-        balances[dst] = balances[dst].add(amount, "TimeLoans::_transferTokens: transfer amount overflows");
+        balances[src] = balances[src].sub(amount, "Uniloan::_transferTokens: transfer amount exceeds balance");
+        balances[dst] = balances[dst].add(amount, "Uniloan::_transferTokens: transfer amount overflows");
         emit Transfer(src, dst, amount);
     }
 
@@ -1021,8 +1021,8 @@ contract TimeLoanPair {
     }
 }
 
-contract TimeLoanPairFactory {
-    /// @notice mapping of all uniswap pairs to TimeLoanPairs
+contract UniloanPairFactory {
+    /// @notice mapping of all uniswap pairs to UniloanPairs
     mapping(address => address) public pairs;
     /// @notice array of all deployed contracts
     address[] public deployed;
@@ -1033,8 +1033,8 @@ contract TimeLoanPairFactory {
      * @return address of the deployed pair
      */
     function deploy(IUniswapV2Pair _pair) external returns (address) {
-        require(pairs[address(_pair)] == address(0x0), "TimeLoanPairFactory::deploy: pair already created");
-        pairs[address(_pair)] = address(new TimeLoanPair(_pair));
+        require(pairs[address(_pair)] == address(0x0), "UniloanPairFactory::deploy: pair already created");
+        pairs[address(_pair)] = address(new UniloanPair(_pair));
         deployed.push(address(_pair));
         return pairs[address(_pair)];
     }

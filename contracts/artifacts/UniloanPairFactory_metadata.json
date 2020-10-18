@@ -1,0 +1,127 @@
+{
+	"compiler": {
+		"version": "0.6.6+commit.6c089d02"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"name": "addresses",
+				"outputs": [
+					{
+						"internalType": "address[]",
+						"name": "",
+						"type": "address[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "contract IUniswapV2Pair",
+						"name": "_pair",
+						"type": "address"
+					}
+				],
+				"name": "deploy",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "deployed",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "pairs",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"methods": {
+				"deploy(address)": {
+					"params": {
+						"_pair": "The uniswap pair to deploy"
+					},
+					"returns": {
+						"_0": "address of the deployed pair"
+					}
+				}
+			}
+		},
+		"userdoc": {
+			"methods": {
+				"addresses()": {
+					"notice": "returns all the addresses in a single view"
+				},
+				"deploy(address)": {
+					"notice": "Deploy an undeployed pair for a given pool"
+				}
+			}
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"localhost/contracts/Uniloan.sol": "UniloanPairFactory"
+		},
+		"evmVersion": "istanbul",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"localhost/contracts/Uniloan.sol": {
+			"keccak256": "0x4d9415260fb23da49ec73eee466753427d1cbca129573106d52c7bf41720bafe",
+			"urls": [
+				"bzz-raw://4faa02ee4ac0fd5f4a6b5935c21e6b7d50d625bf1e95cc64f490543d4fbb75b2",
+				"dweb:/ipfs/QmQ3fWLeu95FqKXxXcFw7neLcNjJBSYb2ni834w94DcxWe"
+			]
+		}
+	},
+	"version": 1
+}
