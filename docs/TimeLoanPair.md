@@ -107,6 +107,27 @@ Provides a quote of how much output can be expected given the inputs
 
 
 
+### `quoteOracle(address collateral, address borrow, uint256 amount) → uint256 amountOut` (public)
+
+Provides a quote of how much output can be expected given the inputs unadjusted for fee
+
+
+
+
+### `quoteSwap(address collateral, uint256 amount) → uint256 amountOut` (public)
+
+Provides a quote of how much output can be expected if a trade were to be executed
+
+
+
+
+### `quoteMin(address collateral, address borrow, uint256 amount) → uint256 amountOut` (public)
+
+Provides a minimum quote of quoteSwap and quote
+
+
+
+
 ### `depositLiquidity()` (external)
 
 deposit available liquidity in the system into the Uniswap Pair, manual for now, require keepers in later iterations
