@@ -157,6 +157,9 @@ contract TimeLoansTest is script {
         fmt.printf("liquidityRemoved=%.18u\n",abi.encode(TL.liquidityRemoved()));
         fmt.printf("liquidityWithdrawals=%.18u\n",abi.encode(TL.liquidityWithdrawals()));
         fmt.printf("liquidityOf(ETH)=%.18u\n",abi.encode(TL.liquidityOf(address(WETH))));
+        fmt.printf("ETH.balanceOf=%.18u\n",abi.encode(WETH.balanceOf(address(TL))));
+        fmt.printf("liquidityOf(WBTC)=%.18u\n",abi.encode(TL.liquidityOf(address(WBTC))));
+        fmt.printf("WBTC.balanceOf=%.18u\n",abi.encode(WBTC.balanceOf(address(TL))));
 
     }
 
