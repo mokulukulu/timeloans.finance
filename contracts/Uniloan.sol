@@ -543,6 +543,12 @@ contract UniloanPair {
     /// @notice The token1 of the Uniswap Pair
     address public token1;
     
+    /// @notice The non utilized reserves in the Pair
+    uint public reserve0;
+    
+    /// @notice The non utilized reserves in the Pair
+    uint public reserve1;
+    
    
     /// @notice Deposited event for creditor/LP
     event Deposited(address indexed creditor, address indexed collateral, uint shares, uint credit);
@@ -744,6 +750,7 @@ contract UniloanPair {
             return false;
         }
         _pos.open = false;
+        _addReserve(_pos.collateral, _pos.creditIn);
         liquidityInUse = liquidityInUse.sub(_pos.liquidityInUse, "Uniloan::close: liquidityInUse overflow");
         liquidityFreed = liquidityFreed.add(_pos.liquidityInUse);
         emit Closed(id, _pos.owner, _pos.collateral, _pos.borrowed, _pos.creditIn, _pos.amountOut, _pos.created, _pos.expire);
@@ -790,7 +797,11 @@ contract UniloanPair {
             _amountBMin = amount;
         }
         IERC20(pair).approve(address(UNI), withdrew);
-        UNI.removeLiquidity(token0, token1, withdrew, _amountAMin, _amountBMin, address(this), now.add(1800));
+        (uint _amount0, uint _amount1) = UNI.removeLiquidity(token0, token1, withdrew, _amountAMin, _amountBMin, address(this), now.add(1800));
+        
+        reserve0 = reserve0.add(_amount0);
+        reserve1 = reserve1.add(_amount1);
+        
         liquidityRemoved = liquidityRemoved.add(withdrew);
     }
     
@@ -824,11 +835,11 @@ contract UniloanPair {
      * @return amountOut the output of the trade
      */
     function quoteSwap(address collateral, uint amount) public view returns (uint amountOut) {
-        (uint reserve0, uint reserve1,) = IUniswapV2Pair(pair).getReserves();
+        (uint _reserve0, uint _reserve1,) = IUniswapV2Pair(pair).getReserves();
         if (collateral == token0) {
-            return UNI.getAmountOut(amount, reserve0, reserve1);
+            return UNI.getAmountOut(amount, _reserve0, _reserve1);
         } else {
-            return UNI.getAmountOut(amount, reserve1, reserve0);
+            return UNI.getAmountOut(amount, _reserve1, _reserve0);
         }
     }
     
@@ -852,7 +863,20 @@ contract UniloanPair {
         require(msg.sender == tx.origin, "Uniloan::depositLiquidity: not an EOA keeper");
         IERC20(token0).approve(address(UNI), IERC20(token0).balanceOf(address(this)));
         IERC20(token1).approve(address(UNI), IERC20(token1).balanceOf(address(this)));
-        (,,uint _added) = UNI.addLiquidity(token0, token1, IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), 0, 0, address(this), now.add(1800));
+        (uint amount0, uint amount1, uint _added) = UNI.addLiquidity(token0, token1, IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), 0, 0, address(this), now.add(1800));
+        
+        /// @notice can be exploited by burning funds to the contract, bricking deposit liquidity
+        if (amount0 > reserve0) {
+            reserve0 = 0;
+        } else {
+            reserve0 = reserve0.sub(amount0);
+        }
+        if (amount1 > reserve1) {
+            reserve1 = 0;
+        } else {
+            reserve1 = reserve1.sub(amount1);
+        }
+        
         liquidityAdded = liquidityAdded.add(_added);
     }
     
@@ -889,8 +913,25 @@ contract UniloanPair {
         loans[msg.sender].push(nextIndex);
         
         IERC20(borrow).transfer(msg.sender, _amountOut);
+        _subReserve(borrow, _amountOut);
         emit Borrowed(nextIndex, msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY));
         return nextIndex++;
+    }
+    
+    function _subReserve(address asset, uint amount) internal {
+        if (asset == token0) {
+            reserve0 = reserve0.sub(amount);
+        } else if (asset == token1) {
+            reserve1 = reserve1.sub(amount);
+        }
+    }
+    
+    function _addReserve(address asset, uint amount) internal {
+        if (asset == token0) {
+            reserve0 = reserve0.add(amount);
+        } else if (asset == token1) {
+            reserve1 = reserve1.add(amount);
+        }
     }
     
     /**

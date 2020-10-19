@@ -116,10 +116,10 @@
 	},
 	"sources": {
 		"localhost/contracts/Uniloan.sol": {
-			"keccak256": "0x4d9415260fb23da49ec73eee466753427d1cbca129573106d52c7bf41720bafe",
+			"keccak256": "0xe7560b4128920e37ad1833395fdff9d635d885269eacb9fc600cdc4450c40809",
 			"urls": [
-				"bzz-raw://4faa02ee4ac0fd5f4a6b5935c21e6b7d50d625bf1e95cc64f490543d4fbb75b2",
-				"dweb:/ipfs/QmQ3fWLeu95FqKXxXcFw7neLcNjJBSYb2ni834w94DcxWe"
+				"bzz-raw://15c55dd72fa890cb6b3a8aaadabcb2466518e50f81a4b151089e1bf50413c2e4",
+				"dweb:/ipfs/QmYGnz7V9im6fUxPyHDsMafVYbcBV9eiPmny2zaLTYwNk7"
 			]
 		}
 	},
