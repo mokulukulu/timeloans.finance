@@ -772,17 +772,17 @@
 			"bytecodeHash": "ipfs"
 		},
 		"optimizer": {
-			"enabled": true,
+			"enabled": false,
 			"runs": 200
 		},
 		"remappings": []
 	},
 	"sources": {
 		"localhost/contracts/Uniloan.sol": {
-			"keccak256": "0xe7560b4128920e37ad1833395fdff9d635d885269eacb9fc600cdc4450c40809",
+			"keccak256": "0xe446e7132f4d6bc37cc86f1e3b932f1b1d9b092aeb57c1f4f3595757980786c7",
 			"urls": [
-				"bzz-raw://15c55dd72fa890cb6b3a8aaadabcb2466518e50f81a4b151089e1bf50413c2e4",
-				"dweb:/ipfs/QmYGnz7V9im6fUxPyHDsMafVYbcBV9eiPmny2zaLTYwNk7"
+				"bzz-raw://d5f53e4a38a683a663db65983110c2900fc0aa1db588c583eef3364a136603cf",
+				"dweb:/ipfs/QmZWhNGbvbiWwY2PW1deacxawM5yYLuCCbYCMhuGJniCzk"
 			]
 		}
 	},

@@ -373,19 +373,6 @@
 			},
 			{
 				"inputs": [],
-				"name": "ORACLE",
-				"outputs": [
-					{
-						"internalType": "contract IUniswapOracleRouter",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
 				"name": "PERMIT_TYPEHASH",
 				"outputs": [
 					{
@@ -467,30 +454,6 @@
 					}
 				],
 				"name": "balanceOf",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "asset",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "calculateLiquidityToBurn",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -948,117 +911,6 @@
 			{
 				"inputs": [
 					{
-						"internalType": "address",
-						"name": "collateral",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "borrow",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "quote",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "minOut",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "collateral",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "borrow",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "quoteMin",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "amountOut",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "collateral",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "borrow",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "quoteOracle",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "amountOut",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "collateral",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "quoteSwap",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "amountOut",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
 						"internalType": "uint256",
 						"name": "id",
 						"type": "uint256"
@@ -1073,32 +925,6 @@
 					}
 				],
 				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "reserve0",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "reserve1",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -1268,14 +1094,6 @@
 						"_0": "The number of tokens held"
 					}
 				},
-				"calculateLiquidityToBurn(address,uint256)": {
-					"params": {
-						"amount": "the amount of asset required as output "
-					},
-					"returns": {
-						"_0": "the amount of liquidity to burn"
-					}
-				},
 				"close(uint256)": {
 					"params": {
 						"id": "the `id` of the given loan to close"
@@ -1327,45 +1145,6 @@
 						"v": "The recovery byte of the signature"
 					}
 				},
-				"quote(address,address,uint256)": {
-					"params": {
-						"amount": "the amount of collateral being provided",
-						"borrow": "the asset being borrowed",
-						"collateral": "the asset being used as collateral"
-					},
-					"returns": {
-						"minOut": "the minimum amount of liquidity to borrow"
-					}
-				},
-				"quoteMin(address,address,uint256)": {
-					"params": {
-						"amount": "the amount of collateral being provided",
-						"borrow": "the asset being borrowed",
-						"collateral": "the asset being used as collateral"
-					},
-					"returns": {
-						"amountOut": "the amount of liquidity to borrow"
-					}
-				},
-				"quoteOracle(address,address,uint256)": {
-					"params": {
-						"amount": "the amount of collateral being provided",
-						"borrow": "the asset being borrowed",
-						"collateral": "the asset being used as collateral"
-					},
-					"returns": {
-						"amountOut": "the amount of liquidity to borrow"
-					}
-				},
-				"quoteSwap(address,uint256)": {
-					"params": {
-						"amount": "the amount of collateral being provided",
-						"collateral": "the asset being sold"
-					},
-					"returns": {
-						"amountOut": "the output of the trade"
-					}
-				},
 				"repay(uint256)": {
 					"params": {
 						"id": "the id of the loan to close"
@@ -1414,9 +1193,6 @@
 				"balanceOf(address)": {
 					"notice": "Get the number of tokens held by the `account`"
 				},
-				"calculateLiquidityToBurn(address,uint256)": {
-					"notice": "calculates the amount of liquidity to burn to get the amount of asset"
-				},
 				"close(uint256)": {
 					"notice": "close a specific loan based on id"
 				},
@@ -1448,18 +1224,6 @@
 				"permit(address,address,uint256,uint256,uint8,bytes32,bytes32)": {
 					"notice": "Triggers an approval from owner to spends"
 				},
-				"quote(address,address,uint256)": {
-					"notice": "Provides a quote of how much output can be expected given the inputs"
-				},
-				"quoteMin(address,address,uint256)": {
-					"notice": "Provides a minimum quote of quoteSwap and quote"
-				},
-				"quoteOracle(address,address,uint256)": {
-					"notice": "Provides a quote of how much output can be expected given the inputs unadjusted for fee"
-				},
-				"quoteSwap(address,uint256)": {
-					"notice": "Provides a quote of how much output can be expected if a trade were to be executed"
-				},
 				"repay(uint256)": {
 					"notice": "Repay a pending loan with `id` anyone can repay, no owner check"
 				},
@@ -1488,17 +1252,17 @@
 			"bytecodeHash": "ipfs"
 		},
 		"optimizer": {
-			"enabled": true,
+			"enabled": false,
 			"runs": 200
 		},
 		"remappings": []
 	},
 	"sources": {
 		"localhost/contracts/Uniloan.sol": {
-			"keccak256": "0xe7560b4128920e37ad1833395fdff9d635d885269eacb9fc600cdc4450c40809",
+			"keccak256": "0xe446e7132f4d6bc37cc86f1e3b932f1b1d9b092aeb57c1f4f3595757980786c7",
 			"urls": [
-				"bzz-raw://15c55dd72fa890cb6b3a8aaadabcb2466518e50f81a4b151089e1bf50413c2e4",
-				"dweb:/ipfs/QmYGnz7V9im6fUxPyHDsMafVYbcBV9eiPmny2zaLTYwNk7"
+				"bzz-raw://d5f53e4a38a683a663db65983110c2900fc0aa1db588c583eef3364a136603cf",
+				"dweb:/ipfs/QmZWhNGbvbiWwY2PW1deacxawM5yYLuCCbYCMhuGJniCzk"
 			]
 		}
 	},

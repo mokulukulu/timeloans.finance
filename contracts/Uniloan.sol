@@ -495,6 +495,81 @@ interface IUniswapOracleRouter {
     function quote(address tokenIn, address tokenOut, uint amountIn) external view returns (uint amountOut);
 }
 
+library UniloanLibrary {
+    using SafeMath for uint;
+    
+    /// @notice Uniswap Oracle Router used for all 24 hour TWAP price metrics
+    IUniswapOracleRouter public constant ORACLE = IUniswapOracleRouter(0x0b5A6b318c39b60e7D8462F888e7fbA89f75D02F);
+    
+    /// @notice Uniswap V2 Router used for all swaps and liquidity management
+    IUniswapV2Router02 public constant UNI = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+    
+    /// @notice base for all % based calculations 
+    uint public constant BASE = 100000;
+    
+    /**
+     * @notice calculates the amount of liquidity to burn to get the amount of asset
+     * @param amount the amount of asset required as output 
+     * @return the amount of liquidity to burn
+     */
+    function calculateLiquidityToBurn(address pair, address asset, uint amount) public view returns (uint) {
+        return IERC20(pair).totalSupply()
+                .mul(amount)
+                .div(IERC20(asset).balanceOf(pair));
+    }
+    
+    /**
+     * @notice Provides a quote of how much output can be expected given the inputs
+     * @param collateral the asset being used as collateral
+     * @param borrow the asset being borrowed
+     * @param amount the amount of collateral being provided
+     * @return minOut the minimum amount of liquidity to borrow
+     */
+    function quote(address collateral, address borrow, uint amount, uint fee, uint ltv) external view returns (uint minOut) {
+        uint _received = (amount.sub(amount.mul(fee).div(BASE))).mul(ltv).div(BASE);
+        return quoteOracle(collateral, borrow, _received);
+    }
+    
+    /**
+     * @notice Provides a quote of how much output can be expected given the inputs unadjusted for fee
+     * @param collateral the asset being used as collateral
+     * @param borrow the asset being borrowed
+     * @param amount the amount of collateral being provided
+     * @return amountOut the amount of liquidity to borrow
+     */
+    function quoteOracle(address collateral, address borrow, uint amount) public view returns (uint amountOut) {
+        return ORACLE.quote(collateral, borrow, amount);
+    }
+    
+    /**
+     * @notice Provides a quote of how much output can be expected if a trade were to be executed
+     * @param collateral the asset being sold
+     * @param amount the amount of collateral being provided
+     * @return amountOut the output of the trade
+     */
+    function quoteSwap(address pair, address collateral, uint amount) public view returns (uint amountOut) {
+        (uint _reserve0, uint _reserve1,) = IUniswapV2Pair(pair).getReserves();
+        if (collateral == IUniswapV2Pair(pair).token0()) {
+            return UNI.getAmountOut(amount, _reserve0, _reserve1);
+        } else if (collateral == IUniswapV2Pair(pair).token1()) {
+            return UNI.getAmountOut(amount, _reserve1, _reserve0);
+        }
+    }
+    
+    /**
+     * @notice Provides a minimum quote of quoteSwap and quote
+     * @param collateral the asset being used as collateral
+     * @param borrow the asset being borrowed
+     * @param amount the amount of collateral being provided
+     * @return amountOut the amount of liquidity to borrow
+     */
+    function quoteMin(address pair, address collateral, address borrow, uint amount) public view returns (uint amountOut) {
+        uint _oracle = quoteOracle(collateral, borrow, amount);
+        uint _swap = quoteSwap(pair, collateral, amount);
+        return Math.min(_oracle, _swap);
+    }
+}
+
 contract UniloanPair {
     using SafeMath for uint;
     
@@ -531,9 +606,6 @@ contract UniloanPair {
     /// @notice Uniswap V2 Router used for all swaps and liquidity management
     IUniswapV2Router02 public constant UNI = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     
-    /// @notice Uniswap Oracle Router used for all 24 hour TWAP price metrics
-    IUniswapOracleRouter public constant ORACLE = IUniswapOracleRouter(0x0b5A6b318c39b60e7D8462F888e7fbA89f75D02F);
-    
     /// @notice The underlying Uniswap Pair used for loan liquidity
     address public pair;
     
@@ -542,12 +614,6 @@ contract UniloanPair {
     
     /// @notice The token1 of the Uniswap Pair
     address public token1;
-    
-    /// @notice The non utilized reserves in the Pair
-    uint public reserve0;
-    
-    /// @notice The non utilized reserves in the Pair
-    uint public reserve1;
     
    
     /// @notice Deposited event for creditor/LP
@@ -750,7 +816,6 @@ contract UniloanPair {
             return false;
         }
         _pos.open = false;
-        _addReserve(_pos.collateral, _pos.creditIn);
         liquidityInUse = liquidityInUse.sub(_pos.liquidityInUse, "Uniloan::close: liquidityInUse overflow");
         liquidityFreed = liquidityFreed.add(_pos.liquidityInUse);
         emit Closed(id, _pos.owner, _pos.collateral, _pos.borrowed, _pos.creditIn, _pos.amountOut, _pos.created, _pos.expire);
@@ -770,23 +835,12 @@ contract UniloanPair {
     }
     
     /**
-     * @notice calculates the amount of liquidity to burn to get the amount of asset
-     * @param amount the amount of asset required as output 
-     * @return the amount of liquidity to burn
-     */
-    function calculateLiquidityToBurn(address asset, uint amount) public view returns (uint) {
-        return IERC20(pair).totalSupply()
-                .mul(amount)
-                .div(IERC20(asset).balanceOf(pair));
-    }
-    
-    /**
      * @notice withdraw liquidity to get the amount of tokens required to borrow
      * @param asset the asset output required
      * @param amount the amount of asset required as output
      */
     function _withdrawLiquidity(address asset, uint amount) internal returns (uint withdrew) {
-        withdrew = calculateLiquidityToBurn(asset, amount);
+        withdrew = UniloanLibrary.calculateLiquidityToBurn(pair, asset, amount);
         withdrew = withdrew.mul(BUFFER).div(BASE);
         
         uint _amountAMin = 0;
@@ -797,63 +851,9 @@ contract UniloanPair {
             _amountBMin = amount;
         }
         IERC20(pair).approve(address(UNI), withdrew);
-        (uint _amount0, uint _amount1) = UNI.removeLiquidity(token0, token1, withdrew, _amountAMin, _amountBMin, address(this), now.add(1800));
-        
-        reserve0 = reserve0.add(_amount0);
-        reserve1 = reserve1.add(_amount1);
+        UNI.removeLiquidity(token0, token1, withdrew, _amountAMin, _amountBMin, address(this), now.add(1800));
         
         liquidityRemoved = liquidityRemoved.add(withdrew);
-    }
-    
-    /**
-     * @notice Provides a quote of how much output can be expected given the inputs
-     * @param collateral the asset being used as collateral
-     * @param borrow the asset being borrowed
-     * @param amount the amount of collateral being provided
-     * @return minOut the minimum amount of liquidity to borrow
-     */
-    function quote(address collateral, address borrow, uint amount) external view returns (uint minOut) {
-        uint _received = (amount.sub(amount.mul(FEE).div(BASE))).mul(LTV).div(BASE);
-        return quoteOracle(collateral, borrow, _received);
-    }
-    
-    /**
-     * @notice Provides a quote of how much output can be expected given the inputs unadjusted for fee
-     * @param collateral the asset being used as collateral
-     * @param borrow the asset being borrowed
-     * @param amount the amount of collateral being provided
-     * @return amountOut the amount of liquidity to borrow
-     */
-    function quoteOracle(address collateral, address borrow, uint amount) public view returns (uint amountOut) {
-        return ORACLE.quote(collateral, borrow, amount);
-    }
-    
-    /**
-     * @notice Provides a quote of how much output can be expected if a trade were to be executed
-     * @param collateral the asset being sold
-     * @param amount the amount of collateral being provided
-     * @return amountOut the output of the trade
-     */
-    function quoteSwap(address collateral, uint amount) public view returns (uint amountOut) {
-        (uint _reserve0, uint _reserve1,) = IUniswapV2Pair(pair).getReserves();
-        if (collateral == token0) {
-            return UNI.getAmountOut(amount, _reserve0, _reserve1);
-        } else {
-            return UNI.getAmountOut(amount, _reserve1, _reserve0);
-        }
-    }
-    
-    /**
-     * @notice Provides a minimum quote of quoteSwap and quote
-     * @param collateral the asset being used as collateral
-     * @param borrow the asset being borrowed
-     * @param amount the amount of collateral being provided
-     * @return amountOut the amount of liquidity to borrow
-     */
-    function quoteMin(address collateral, address borrow, uint amount) public view returns (uint amountOut) {
-        uint _oracle = quoteOracle(collateral, borrow, amount);
-        uint _swap = quoteSwap(collateral, amount);
-        return Math.min(_oracle, _swap);
     }
     
     /**
@@ -861,21 +861,10 @@ contract UniloanPair {
      */
     function depositLiquidity() external {
         require(msg.sender == tx.origin, "Uniloan::depositLiquidity: not an EOA keeper");
+        
         IERC20(token0).approve(address(UNI), IERC20(token0).balanceOf(address(this)));
         IERC20(token1).approve(address(UNI), IERC20(token1).balanceOf(address(this)));
-        (uint amount0, uint amount1, uint _added) = UNI.addLiquidity(token0, token1, IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), 0, 0, address(this), now.add(1800));
-        
-        /// @notice can be exploited by burning funds to the contract, bricking deposit liquidity
-        if (amount0 > reserve0) {
-            reserve0 = 0;
-        } else {
-            reserve0 = reserve0.sub(amount0);
-        }
-        if (amount1 > reserve1) {
-            reserve1 = 0;
-        } else {
-            reserve1 = reserve1.sub(amount1);
-        }
+        (,, uint _added) = UNI.addLiquidity(token0, token1, IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), 0, 0, address(this), now.add(1800));
         
         liquidityAdded = liquidityAdded.add(_added);
     }
@@ -898,7 +887,7 @@ contract UniloanPair {
         
         uint _ltv = _received.mul(LTV).div(BASE);
         
-        uint _amountOut = quoteMin(collateral, borrow, _ltv);
+        uint _amountOut = UniloanLibrary.quoteMin(pair, collateral, borrow, _ltv);
         require(_amountOut >= outMin, "Uniloan::loan: slippage");
         require(liquidityOf(borrow) > _amountOut, "Uniloan::loan: insufficient liquidity");
         
@@ -913,25 +902,8 @@ contract UniloanPair {
         loans[msg.sender].push(nextIndex);
         
         IERC20(borrow).transfer(msg.sender, _amountOut);
-        _subReserve(borrow, _amountOut);
         emit Borrowed(nextIndex, msg.sender, collateral, borrow, _received, _amountOut, block.number, block.number.add(DELAY));
         return nextIndex++;
-    }
-    
-    function _subReserve(address asset, uint amount) internal {
-        if (asset == token0) {
-            reserve0 = reserve0.sub(amount);
-        } else if (asset == token1) {
-            reserve1 = reserve1.sub(amount);
-        }
-    }
-    
-    function _addReserve(address asset, uint amount) internal {
-        if (asset == token0) {
-            reserve0 = reserve0.add(amount);
-        } else if (asset == token1) {
-            reserve1 = reserve1.add(amount);
-        }
     }
     
     /**
