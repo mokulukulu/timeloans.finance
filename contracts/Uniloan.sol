@@ -877,6 +877,8 @@ contract UniloanPair {
      * @param outMin the minimum amount of liquidity to borrow
      */
     function loan(address collateral, address borrow, uint amount, uint outMin) external returns (uint) {
+        require(collateral == token0 || collateral == token1, "Uniloan::loan: Collateral not one of pair");
+
         uint _before = IERC20(collateral).balanceOf(address(this));
         IERC20(collateral).transferFrom(msg.sender, address(this), amount);
         uint _after = IERC20(collateral).balanceOf(address(this));
